@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Distinta — Scualo Sporting Club</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy2: #111e35;
+    --blue: #1a3a6e;
+    --accent: #e8c84a;
+    --accent2: #f0d966;
+    --text: #eef2ff;
+    --muted: #8899bb;
+    --card: #16243d;
+    --selected-bg: #1a3a6e;
+    --selected-border: #e8c84a;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 120px;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--navy2);
+    border-bottom: 3px solid var(--accent);
+    padding: 18px 20px 14px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  .logo-badge {
+    width: 48px; height: 48px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--navy);
+    flex-shrink: 0;
+    letter-spacing: 1px;
+  }
+
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  header h1 span {
+    display: block;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .counter-badge {
+    margin-left: auto;
+    background: var(--accent);
+    color: var(--navy);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .counter-badge.full { background: #e05050; color: #fff; }
+
+  /* MATCH INFO */
+  .match-info {
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .match-info input {
+    background: var(--card);
+    border: 1.5px solid var(--blue);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .match-info input::placeholder { color: var(--muted); }
+  .match-info input:focus { border-color: var(--accent); }
+  .match-info .full-row { grid-column: 1 / -1; }
+
+  .section-label {
+    padding: 6px 20px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  /* TYPE SELECTOR */
+  .type-selector {
+    padding: 0 20px 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .type-btn {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 8px;
+    border: 1.5px solid var(--blue);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .type-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--navy);
+    font-weight: 600;
+  }
+
+  /* SEARCH */
+  .search-wrap {
+    padding: 0 20px 14px;
+  }
+  .search-wrap input {
+    width: 100%;
+    background: var(--card);
+    border: 1.5px solid var(--blue);
+    border-radius: 30px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 18px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-wrap input:focus { border-color: var(--accent); }
+
+  /* PLAYER GRID */
+  .players-grid {
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .player-card {
+    background: var(--card);
+    border: 2px solid transparent;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .player-card:active { transform: scale(0.97); }
+  .player-card.selected {
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
+    box-shadow: 0 0 0 1px var(--selected-border)22, 0 4px 16px rgba(232,200,74,0.15);
+  }
+
+  .player-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .player-card.selected .player-number { color: var(--accent2); }
+
+  .player-name {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .player-birth {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+  .player-card.selected .player-birth { color: #a0b8e8; }
+
+  .check-icon {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 20px; height: 20px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: none;
+    align-items: center; justify-content: center;
+  }
+  .player-card.selected .check-icon { display: flex; }
+  .check-icon svg { width: 12px; height: 12px; }
+
+  /* SELECTED STRIP */
+  .selected-strip {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--navy2);
+    border-top: 2px solid var(--blue);
+    padding: 12px 20px;
+    z-index: 200;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+  }
+
+  .strip-names {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    min-height: 32px;
+    align-items: center;
+    scrollbar-width: none;
+  }
+  .strip-names::-webkit-scrollbar { display: none; }
+
+  .strip-tag {
+    background: var(--blue);
+    border: 1px solid var(--accent)66;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .strip-tag:hover { background: #e05050; }
+
+  .strip-empty {
+    color: var(--muted);
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  .generate-btn {
+    width: 100%;
+    background: var(--accent);
+    color: var(--navy);
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .generate-btn:hover { background: var(--accent2); }
+  .generate-btn:active { transform: scale(0.98); }
+  .generate-btn:disabled {
+    background: var(--blue);
+    color: var(--muted);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .no-results {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 30px 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">SC</div>
+  <h1>SCUALO SC<span>Distinta di gara</span></h1>
+  <div class="counter-badge" id="counterBadge">0</div>
+</header>
+
+<!-- Dati gara -->
+<div class="match-info">
+  <input type="text" id="matchDate" placeholder="Data gara (es. 07/06/2025)" class="full-row">
+  <input type="text" id="matchField" placeholder="Campo">
+  <input type="text" id="matchOpponent" placeholder="Avversario" class="full-row">
+</div>
+
+<div class="section-label">Tipo competizione</div>
+<div class="type-selector">
+  <button class="type-btn active" data-type="campionato" onclick="setType(this)">Campionato</button>
+  <button class="type-btn" data-type="coppa" onclick="setType(this)">Coppa</button>
+  <button class="type-btn" data-type="torneo" onclick="setType(this)">Torneo</button>
+</div>
+
+<div class="search-wrap">
+  <input type="text" id="searchInput" placeholder="🔍  Cerca giocatore…" oninput="renderPlayers()">
+</div>
+
+<div class="section-label" id="sectionLabel">Seleziona giocatori (max 18)</div>
+<div class="players-grid" id="playersGrid"></div>
+
+<!-- Bottom strip -->
+<div class="selected-strip">
+  <div class="strip-names" id="stripNames">
+    <span class="strip-empty">Nessun giocatore selezionato</span>
+  </div>
+  <button class="generate-btn" id="genBtn" onclick="generatePDF()" disabled>
+    GENERA DISTINTA PDF
+  </button>
+</div>
+
+<script>
+const MAX = 18;
+let selectedType = 'campionato';
+
+const PLAYERS = [
+  { num: 21, name: 'AURELI SIMONE',        tessera: '260057188', birth: '16/03/1998' },
+  { num: 61, name: 'BELLUCCI NICHOLAS',    tessera: '260057191', birth: '06/01/1999' },
+  { num:  1, name: 'BERNARDINI IVAN',      tessera: '260057192', birth: '10/10/2006' },
+  { num:  2, name: 'BUSCHERINI GIAMMARIA', tessera: '260057195', birth: '25/05/2004' },
+  { num: 28, name: 'CASADEI DAVIDE',       tessera: '260057199', birth: '28/11/2000' },
+  { num:  7, name: 'PALAZZI MARCO',        tessera: '260057221', birth: '01/09/1998' },
+  { num: 22, name: 'PFISTER GIACOMO JOHN', tessera: '260057225', birth: '01/11/1999' },
+  { num: 77, name: 'PIZZAGALLI MATTEO',    tessera: '260057226', birth: '26/02/2000' },
+  { num: 24, name: 'RATTINI EMILIANO',     tessera: '260057229', birth: '13/11/1999' },
+  { num:  8, name: 'SALVATORI DAVIDE',     tessera: '260057231', birth: '26/01/1997' },
+  { num: 99, name: 'SAMMARINI MARCO',      tessera: '260057232', birth: '08/08/1999' },
+  { num:  3, name: 'SISCA GIANMARCO',      tessera: '260057236', birth: '03/09/1999' },
+  { num: 10, name: 'TAMAGNINI GIACOMO',    tessera: '260056292', birth: '04/10/1999' },
+  { num:  9, name: 'UMMARINO RICCARDO',    tessera: '260057240', birth: '02/05/1999' },
+  { num: 13, name: 'VANNI PIETRO',         tessera: '260057241', birth: '31/03/1998' },
+  { num: 45, name: 'ZAMMARCHI MATTEO',     tessera: '260057242', birth: '24/02/1998' },
+  { num: 18, name: 'BERNARDINI YURI',      tessera: '260546243', birth: '24/11/1998' },
+  { num: 11, name: "ARGIRO' UMBERTO MARIA",tessera: '260849592', birth: '25/11/2003' },
+  { num: 23, name: 'SILVAGNI MATTEO',      tessera: '260597721', birth: '12/07/1997' },
+  { num: 69, name: 'GARATTONI GIANLUCA',   tessera: '260715455', birth: '25/05/2002' },
+];
+
+let selected = new Set();
+
+function setType(btn) {
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedType = btn.dataset.type;
+}
+
+function togglePlayer(idx) {
+  const id = PLAYERS[idx].tessera;
+  if (selected.has(id)) {
+    selected.delete(id);
+  } else {
+    if (selected.size >= MAX) return;
+    selected.add(id);
+  }
+  updateCounter();
+  renderPlayers();
+  renderStrip();
+  document.getElementById('genBtn').disabled = selected.size === 0;
+}
+
+function updateCounter() {
+  const badge = document.getElementById('counterBadge');
+  badge.textContent = selected.size;
+  badge.classList.toggle('full', selected.size >= MAX);
+}
+
+function renderPlayers() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const grid = document.getElementById('playersGrid');
+  const filtered = PLAYERS.filter(p => p.name.toLowerCase().includes(q) || String(p.num).includes(q));
+  
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="no-results">Nessun giocatore trovato</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map((p, i) => {
+    const realIdx = PLAYERS.indexOf(p);
+    const isSel = selected.has(p.tessera);
+    return `
+    <div class="player-card ${isSel ? 'selected' : ''}" onclick="togglePlayer(${realIdx})">
+      <div class="player-number">N° ${p.num}</div>
+      <div class="player-name">${p.name}</div>
+      <div class="player-birth">${p.birth}</div>
+      <div class="check-icon">
+        <svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#0a1628" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function removeFromStrip(tessera) {
+  selected.delete(tessera);
+  updateCounter();
+  renderPlayers();
+  renderStrip();
+  document.getElementById('genBtn').disabled = selected.size === 0;
+}
+
+function renderStrip() {
+  const strip = document.getElementById('stripNames');
+  if (!selected.size) {
+    strip.innerHTML = '<span class="strip-empty">Nessun giocatore selezionato</span>';
+    return;
+  }
+  const tags = [...selected].map(t => {
+    const p = PLAYERS.find(x => x.tessera === t);
+    const short = p.name.split(' ')[0];
+    return `<span class="strip-tag" onclick="removeFromStrip('${t}')" title="Rimuovi">${short}</span>`;
+  }).join('');
+  strip.innerHTML = tags;
+}
+
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  const W = 210, H = 297;
+  const margin = 15;
+
+  // ---- HELPER ----
+  const selectedPlayers = PLAYERS.filter(p => selected.has(p.tessera))
+    .sort((a, b) => a.num - b.num);
+
+  const matchDate = document.getElementById('matchDate').value || '_______________';
+  const matchField = document.getElementById('matchField').value || '___________________________';
+  const matchOpponent = document.getElementById('matchOpponent').value || '___________________________';
+
+  // Background
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, W, H, 'F');
+
+  // --- LOGO placeholder (cerchio) ---
+  doc.setDrawColor(30, 60, 100);
+  doc.setLineWidth(1.5);
+  doc.circle(margin + 12, 22, 12);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 60, 100);
+  doc.text('SCUALO', margin + 12, 19, { align: 'center' });
+  doc.text('SPORTING', margin + 12, 23, { align: 'center' });
+  doc.text('CLUB', margin + 12, 27, { align: 'center' });
+
+  // --- UISP badge (destra) ---
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(1.5);
+  doc.circle(W - margin - 12, 22, 12);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text('UISP', W - margin - 12, 20, { align: 'center' });
+  doc.setFontSize(7);
+  doc.text('RIMINI', W - margin - 12, 25, { align: 'center' });
+
+  // --- Intestazione ---
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text('SCUALO SPORTING CLUB', W / 2, 16, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Viale Puglia 12, Riccione', W / 2, 22, { align: 'center' });
+
+  // --- Tipo competizione (checkbox) ---
+  let y = 34;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const types = ['Campionato', 'Coppa', 'Torneo'];
+  let cx = margin;
+  types.forEach(t => {
+    doc.setLineWidth(0.5);
+    doc.rect(cx, y - 4, 4, 4);
+    if (selectedType === t.toLowerCase()) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('X', cx + 0.7, y - 0.5);
+      doc.setFont('helvetica', 'normal');
+    }
+    doc.text(t, cx + 6, y - 0.5);
+    cx += 38;
+  });
+
+  // --- Linea dati gara ---
+  y = 46;
+  doc.setFontSize(10);
+  doc.text('Gara del giorno', margin, y);
+  doc.line(margin + 32, y + 0.5, margin + 70, y + 0.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text(matchDate, margin + 34, y);
+  doc.setFont('helvetica', 'normal');
+
+  doc.text('Campo', margin + 74, y);
+  doc.line(margin + 86, y + 0.5, W - margin, y + 0.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text(matchField, margin + 88, y);
+  doc.setFont('helvetica', 'normal');
+
+  y = 55;
+  doc.text('Tra le società', margin, y);
+  doc.line(margin + 28, y + 0.5, W - margin, y + 0.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text(matchOpponent, margin + 30, y);
+  doc.setFont('helvetica', 'normal');
+
+  // --- Titolo tabella ---
+  y = 64;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ELENCO GIOCATORI', W / 2, y, { align: 'center' });
+
+  // --- Tabella ---
+  y = 70;
+  const colX = [margin, margin + 22, margin + 118, margin + 152];
+  const colW = [22, 96, 34, W - margin - 152];
+  const rowH = 8;
+
+  // Header
+  doc.setFillColor(230, 230, 230);
+  doc.rect(margin, y, W - margin * 2, rowH, 'F');
+  doc.setDrawColor(100, 100, 100);
+  doc.setLineWidth(0.3);
+  doc.rect(margin, y, W - margin * 2, rowH);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  ['Numero', 'Cognome e Nome', 'N. Tessera', 'Anno nascita'].forEach((h, i) => {
+    doc.text(h, colX[i] + 2, y + 5.5);
+    if (i > 0) doc.line(colX[i], y, colX[i], y + rowH);
+  });
+
+  y += rowH;
+
+  // Rows
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+
+  selectedPlayers.forEach((p, idx) => {
+    const rowY = y + idx * rowH;
+    if (idx % 2 === 0) {
+      doc.setFillColor(248, 248, 248);
+      doc.rect(margin, rowY, W - margin * 2, rowH, 'F');
+    }
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.2);
+    doc.rect(margin, rowY, W - margin * 2, rowH);
+    colX.slice(1).forEach(x => doc.line(x, rowY, x, rowY + rowH));
+
+    doc.setTextColor(30, 30, 30);
+    doc.text(String(p.num), colX[0] + 2, rowY + 5.5);
+    doc.text(p.name, colX[1] + 2, rowY + 5.5);
+    doc.text(p.tessera, colX[2] + 2, rowY + 5.5);
+    doc.text(p.birth, colX[3] + 2, rowY + 5.5);
+  });
+
+  // Fill empty rows up to 18
+  for (let i = selectedPlayers.length; i < 18; i++) {
+    const rowY = y + i * rowH;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(margin, rowY, W - margin * 2, rowH, 'F');
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.2);
+    doc.rect(margin, rowY, W - margin * 2, rowH);
+    colX.slice(1).forEach(x => doc.line(x, rowY, x, rowY + rowH));
+  }
+
+  y += 18 * rowH + 10;
+
+  // --- Firme / info finali ---
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text('Allenatore:', margin, y);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Francolini Massimiliano, 260119311', margin + 22, y);
+
+  y += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Dirigente accompagnatore', margin, y);
+  doc.line(margin + 52, y + 0.5, margin + 90, y + 0.5);
+  doc.text(',', margin + 91, y);
+  doc.line(margin + 93, y + 0.5, W - margin, y + 0.5);
+
+  y += 8;
+  doc.text('Dir. Add. Arbitro', margin, y);
+  doc.line(margin + 34, y + 0.5, margin + 72, y + 0.5);
+  doc.text(',', margin + 73, y);
+  doc.line(margin + 75, y + 0.5, W - margin, y + 0.5);
+
+  y += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Dirigente', margin, y);
+  doc.line(margin + 18, y + 0.5, margin + 56, y + 0.5);
+  doc.text(',', margin + 57, y);
+  doc.line(margin + 59, y + 0.5, W / 2 - 5, y + 0.5);
+
+  y += 8;
+  doc.text('Guardalinee', margin, y);
+  doc.line(margin + 22, y + 0.5, margin + 60, y + 0.5);
+  doc.text(',', margin + 61, y);
+  doc.line(margin + 63, y + 0.5, W / 2 - 5, y + 0.5);
+
+  // Firme dirigente / arbitro
+  y += 18;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Il Dirigente', margin + 20, y, { align: 'center' });
+  doc.text('Arbitro Sig.', W - margin - 30, y, { align: 'center' });
+  doc.line(margin, y + 12, margin + 60, y + 12);
+  doc.line(W - margin - 65, y + 12, W - margin, y + 12);
+
+  // Save
+  const dateStr = matchDate.replace(/\//g, '-');
+  doc.save(`distinta_scualo_${dateStr || 'gara'}.pdf`);
+}
+
+// Init
+renderPlayers();
+</script>
+</body>
+</html>
