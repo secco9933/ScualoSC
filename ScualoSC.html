@@ -694,7 +694,7 @@ function generatePDF() {
 
 // ROMAGNA SPORT
 var PROXY_URL = "https://romagnasport-t5ev22ab5a-uc.a.run.app";
-var RS_GIR = "293"; // Girone B UISP Fo-Ce 11 - Scualo
+var RS_GIR = "293";
 var rsCurrentTab = "classifica";
 
 function rsTab(btn, tab) {
@@ -705,15 +705,24 @@ function rsTab(btn, tab) {
   loadRomagnaSport(tab);
 }
 
+function showRsError(tab) {
+  var container = document.getElementById("rs-content");
+  var div = document.createElement("div");
+  div.className = "rs-error";
+  div.innerHTML = "Errore nel caricamento.<br>Controlla la connessione.";
+  var btn = document.createElement("button");
+  btn.className = "rs-refresh";
+  btn.textContent = "Riprova";
+  btn.onclick = function() { loadRomagnaSport(tab); };
+  div.appendChild(btn);
+  container.innerHTML = "";
+  container.appendChild(div);
+}
+
 function loadRomagnaSport(tab) {
   var container = document.getElementById("rs-content");
-  container.innerHTML = '<div class="rs-loading">Caricamento...</div>';
-
-  var url = "";
-  if (tab === "classifica" || tab === "risultati" || tab === "calendario") {
-    url = "https://www.romagnasport.com/tuttocalcio/classifica.php?gir=" + RS_GIR;
-  }
-
+  var loadDiv = document.createElement("div"); loadDiv.className = "rs-loading"; loadDiv.textContent = "Caricamento..."; container.innerHTML = ""; container.appendChild(loadDiv);
+  var url = "https://www.romagnasport.com/tuttocalcio/classifica.php?gir=" + RS_GIR;
   fetch(PROXY_URL + "?url=" + encodeURIComponent(url))
     .then(function(r) { return r.text(); })
     .then(function(html) {
@@ -721,120 +730,128 @@ function loadRomagnaSport(tab) {
       else if (tab === "risultati") parseRisultati(html);
       else parseCalendario(html);
     })
-    .catch(function(e) {
-      container.innerHTML = '<div class="rs-error">Errore nel caricamento dei dati.<br>Controlla la connessione.<br><button class="rs-refresh" onclick="loadRomagnaSport('' + tab + '')">Riprova</button></div>';
-    });
+    .catch(function() { showRsError(tab); });
 }
 
 function parseClassifica(html) {
   var container = document.getElementById("rs-content");
   var parser = new DOMParser();
   var doc = parser.parseFromString(html, "text/html");
-
-  // Find classifica table
   var tables = doc.querySelectorAll("table");
   var classTbl = null;
   for (var i = 0; i < tables.length; i++) {
     var txt = tables[i].textContent;
-    if (txt.indexOf("PT") >= 0 && txt.indexOf("G") >= 0 && txt.indexOf("V") >= 0) {
-      classTbl = tables[i]; break;
-    }
+    if (txt.indexOf("PT") >= 0 && txt.indexOf(" V ") >= 0) { classTbl = tables[i]; break; }
   }
-
   if (!classTbl) {
-    container.innerHTML = '<div class="rs-error">Classifica non disponibile al momento.</div>'; return;
+    var errDiv = document.createElement("div"); errDiv.className = "rs-error"; errDiv.textContent = "Classifica non disponibile."; container.innerHTML = ""; container.appendChild(errDiv);
+    return;
   }
-
   var rows = classTbl.querySelectorAll("tr");
-  var tableHtml = '<table class="classifica-table"><thead><tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>P</th><th>S</th><th>GF</th><th>GS</th><th>PT</th></tr></thead><tbody>';
+  var wrap = document.createElement("div");
+  wrap.style.overflowX = "auto";
+  var tbl = document.createElement("table");
+  tbl.className = "classifica-table";
+  var thead = document.createElement("thead");
+  thead.innerHTML = "<tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>P</th><th>S</th><th>GF</th><th>GS</th><th>PT</th></tr>";
+  tbl.appendChild(thead);
+  var tbody = document.createElement("tbody");
   var pos = 0;
-
   for (var i = 0; i < rows.length; i++) {
     var cells = rows[i].querySelectorAll("td");
-    if (cells.length < 5) continue;
-    pos++;
-    var teamName = cells[0] ? cells[0].textContent.trim() : "";
-    if (!teamName) { // try finding team name in different column
-      for (var c = 0; c < cells.length; c++) {
-        var t = cells[c].textContent.trim();
-        if (t.length > 3 && isNaN(t)) { teamName = t; break; }
-      }
-    }
-    var isScualo = teamName.toLowerCase().indexOf("scual") >= 0;
+    if (cells.length < 4) continue;
+    var teamName = "";
     var nums = [];
     for (var c = 0; c < cells.length; c++) {
       var v = cells[c].textContent.trim();
-      if (!isNaN(v) && v !== "") nums.push(v);
+      if (v.length > 2 && isNaN(v) && v !== "-") teamName = v;
+      else if (!isNaN(v) && v !== "") nums.push(v);
     }
-    tableHtml += '<tr' + (isScualo ? ' class="scualo"' : '') + '>';
-    tableHtml += '<td>' + pos + '</td>';
-    tableHtml += '<td>' + teamName + '</td>';
-    for (var n = 0; n < 7; n++) tableHtml += '<td>' + (nums[n] || "-") + '</td>';
-    tableHtml += '</tr>';
+    if (!teamName) continue;
+    pos++;
+    var tr = document.createElement("tr");
+    if (teamName.toLowerCase().indexOf("scual") >= 0) tr.className = "scualo";
+    var tdPos = document.createElement("td"); tdPos.textContent = pos; tr.appendChild(tdPos);
+    var tdName = document.createElement("td"); tdName.textContent = teamName; tr.appendChild(tdName);
+    for (var n = 0; n < 7; n++) {
+      var td = document.createElement("td"); td.textContent = nums[n] || "-"; tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
   }
-  tableHtml += '</tbody></table>';
-  container.innerHTML = tableHtml;
+  tbl.appendChild(tbody);
+  wrap.appendChild(tbl);
+  container.innerHTML = "";
+  container.appendChild(wrap);
 }
 
 function parseRisultati(html) {
   var container = document.getElementById("rs-content");
   var parser = new DOMParser();
   var doc = parser.parseFromString(html, "text/html");
-
   var risultati = [];
-  // Look for result patterns like "3-1", "2-0" etc in tables
   var tables = doc.querySelectorAll("table");
   for (var t = 0; t < tables.length; t++) {
     var rows = tables[t].querySelectorAll("tr");
     for (var r = 0; r < rows.length; r++) {
       var cells = rows[r].querySelectorAll("td");
       var rowText = rows[r].textContent;
-      // Look for score pattern
-      if (rowText.match(/\d+\s*-\s*\d+/) && cells.length >= 3) {
-        var casa = "", ospite = "", score = "", data = "";
+      var scoreMatch = rowText.match(/(\d+) - (\d+)/);
+      if (scoreMatch && cells.length >= 3) {
+        var teams = [];
+        var score = "";
+        var data = "";
         for (var c = 0; c < cells.length; c++) {
           var v = cells[c].textContent.trim();
-          if (v.match(/^\d+\s*-\s*\d+$/)) score = v;
+          if (v.match(/^\d+ - \d+$/)) score = v;
           else if (v.match(/\d{2}\/\d{2}/)) data = v;
-          else if (v.length > 3 && !v.match(/^\d/) && !score) casa = v;
-          else if (v.length > 3 && !v.match(/^\d/) && score) ospite = v;
+          else if (v.length > 3 && v.indexOf("/") < 0) teams.push(v);
         }
-        if (score) risultati.push({casa:casa, ospite:ospite, score:score, data:data});
+        if (score && teams.length >= 2) {
+          risultati.push({casa: teams[0], ospite: teams[1], score: score, data: data});
+        }
       }
     }
   }
-
   if (!risultati.length) {
-    container.innerHTML = '<div class="rs-error">Risultati non disponibili.<br>Potrebbero non esserci ancora partite giocate.</div>'; return;
+    var errDiv2 = document.createElement("div"); errDiv2.className = "rs-error"; errDiv2.textContent = "Nessun risultato disponibile al momento."; container.innerHTML = ""; container.appendChild(errDiv2);
+    return;
   }
-
-  var html2 = '<div class="rs-risultati">';
+  container.innerHTML = "";
+  var wrap = document.createElement("div");
+  wrap.className = "rs-risultati";
   for (var i = 0; i < risultati.length; i++) {
     var m = risultati[i];
     var isScualo = (m.casa + m.ospite).toLowerCase().indexOf("scual") >= 0;
-    html2 += '<div class="rs-match' + (isScualo ? '" style="border-color:var(--grey1)"' : '"') + '>';
-    if (m.data) html2 += '<div class="rs-match-date">' + m.data + '</div>';
-    html2 += '<div class="rs-match-teams">';
-    html2 += '<div class="rs-team' + (m.casa.toLowerCase().indexOf("scual")>=0?" scualo":"") + '">' + m.casa + '</div>';
-    html2 += '<div class="rs-score">' + m.score + '</div>';
-    html2 += '<div class="rs-team right' + (m.ospite.toLowerCase().indexOf("scual")>=0?" scualo":"") + '">' + m.ospite + '</div>';
-    html2 += '</div></div>';
+    var card = document.createElement("div");
+    card.className = "rs-match";
+    if (isScualo) card.style.borderColor = "var(--grey1)";
+    if (m.data) {
+      var dt = document.createElement("div"); dt.className = "rs-match-date"; dt.textContent = m.data; card.appendChild(dt);
+    }
+    var row = document.createElement("div"); row.className = "rs-match-teams";
+    var casa = document.createElement("div");
+    casa.className = "rs-team" + (m.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
+    casa.textContent = m.casa; row.appendChild(casa);
+    var sc = document.createElement("div"); sc.className = "rs-score"; sc.textContent = m.score; row.appendChild(sc);
+    var ospite = document.createElement("div");
+    ospite.className = "rs-team right" + (m.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
+    ospite.textContent = m.ospite; row.appendChild(ospite);
+    card.appendChild(row);
+    wrap.appendChild(card);
   }
-  html2 += '</div>';
-  container.innerHTML = html2;
+  container.appendChild(wrap);
 }
 
 function parseCalendario(html) {
-  // Reuse risultati parser but filter for upcoming
   parseRisultati(html);
 }
 
-// Load when section opens
 var _origNavTo2 = navTo;
 navTo = function(section) {
   _origNavTo2(section);
   if (section === "statistiche") loadRomagnaSport(rsCurrentTab);
 };
+
 </script>
 </body>
 </html>
