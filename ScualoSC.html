@@ -24,35 +24,35 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const CORRECT_PIN = "2025";
-let pinBuffer = "";
+window._pinBuffer = "";
 
-function checkPin() {
-  if (pinBuffer === CORRECT_PIN) {
+window._updatePinDots = function() {
+  document.querySelectorAll(".pin-dot").forEach((d, i) => {
+    d.classList.toggle("filled", i < window._pinBuffer.length);
+  });
+};
+
+window._checkPin = function() {
+  if (window._pinBuffer === CORRECT_PIN) {
     document.getElementById("pinScreen").style.display = "none";
     document.getElementById("mainApp").style.display = "flex";
     loadAllData();
-  } else if (pinBuffer.length === 4) {
+  } else if (window._pinBuffer.length === 4) {
     document.getElementById("pinDisplay").classList.add("shake");
     setTimeout(() => {
       document.getElementById("pinDisplay").classList.remove("shake");
-      pinBuffer = "";
-      updatePinDots();
+      window._pinBuffer = "";
+      window._updatePinDots();
     }, 500);
   }
-}
-
-function updatePinDots() {
-  document.querySelectorAll(".pin-dot").forEach((d, i) => {
-    d.classList.toggle("filled", i < pinBuffer.length);
-  });
-}
+};
 
 window.pinPress = function(val) {
-  if (val === "del") { pinBuffer = pinBuffer.slice(0, -1); updatePinDots(); return; }
-  if (pinBuffer.length >= 4) return;
-  pinBuffer += val;
-  updatePinDots();
-  if (pinBuffer.length === 4) setTimeout(checkPin, 150);
+  if (val === "del") { window._pinBuffer = window._pinBuffer.slice(0, -1); window._updatePinDots(); return; }
+  if (window._pinBuffer.length >= 4) return;
+  window._pinBuffer += val;
+  window._updatePinDots();
+  if (window._pinBuffer.length === 4) setTimeout(window._checkPin, 150);
 };
 
 let currentSection = "dashboard";
@@ -306,7 +306,7 @@ window.savePartita = async function() {
 };
 
 window.addEventListener("DOMContentLoaded", () => {
-  updatePinDots();
+  window._updatePinDots();
   document.querySelectorAll(".nav-item").forEach(el => el.addEventListener("click", () => navTo(el.dataset.section)));
 });
 </script>
@@ -714,10 +714,7 @@ html, body { height: 100%; overflow: hidden; background: var(--black); color: va
 </div>
 
 <script>
-function updatePinDots() {
-  document.querySelectorAll(".pin-dot").forEach((d,i) => d.classList.toggle("filled", i < (window._pinBuf||"").length));
-}
-updatePinDots();
+// pin dots already handled by module
 </script>
 </body>
 </html>
