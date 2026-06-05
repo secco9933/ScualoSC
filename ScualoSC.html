@@ -594,7 +594,7 @@ function closeAddPartita() {
   document.getElementById("modalAddPartita").style.display = "none";
   var ids = ["p-data","p-avv","p-campo","p-gol-f","p-gol-s"];
   for (var i = 0; i < ids.length; i++) document.getElementById(ids[i]).value = "";
-  var btn = document.querySelector(".stato-btn[data-stato='programmata']");
+  var btn = document.querySelector(".stato-btn[data-stato=\"programmata\"]");
   if (btn) btn.click();
 }
 function setStato(btn) {
@@ -722,7 +722,7 @@ function showRsError(tab) {
 function loadRomagnaSport(tab) {
   var container = document.getElementById("rs-content");
   var loadDiv = document.createElement("div"); loadDiv.className = "rs-loading"; loadDiv.textContent = "Caricamento..."; container.innerHTML = ""; container.appendChild(loadDiv);
-  var url = "https://www.romagnasport.com/tuttocalcio/classifica.php?gir=" + RS_GIR;
+  var url = "https://www.romagnasport.com/tuttocalcio/classifica.php?gir=" + RS_GIR + "&anno=2025";
   fetch(PROXY_URL + "?url=" + encodeURIComponent(url))
     .then(function(r) { return r.text(); })
     .then(function(html) {
@@ -737,51 +737,73 @@ function parseClassifica(html) {
   var container = document.getElementById("rs-content");
   var parser = new DOMParser();
   var doc = parser.parseFromString(html, "text/html");
+
   var tables = doc.querySelectorAll("table");
   var classTbl = null;
   for (var i = 0; i < tables.length; i++) {
     var txt = tables[i].textContent;
-    if (txt.indexOf("PT") >= 0 && txt.indexOf(" V ") >= 0) { classTbl = tables[i]; break; }
+    if ((txt.indexOf("Punti") >= 0 || txt.indexOf("Squadra") >= 0) && txt.indexOf("Gare") >= 0) {
+      classTbl = tables[i]; break;
+    }
   }
   if (!classTbl) {
-    var errDiv = document.createElement("div"); errDiv.className = "rs-error"; errDiv.textContent = "Classifica non disponibile."; container.innerHTML = ""; container.appendChild(errDiv);
-    return;
+    for (var i = 0; i < tables.length; i++) {
+      var rows = tables[i].querySelectorAll("tr");
+      if (rows.length >= 5) {
+        var firstRow = rows[1] || rows[0];
+        if (firstRow && firstRow.querySelectorAll("td,th").length >= 6) {
+          classTbl = tables[i]; break;
+        }
+      }
+    }
   }
+  if (!classTbl) {
+    var e = document.createElement("div"); e.className = "rs-error";
+    e.textContent = "Classifica non ancora disponibile.";
+    container.innerHTML = ""; container.appendChild(e); return;
+  }
+
   var rows = classTbl.querySelectorAll("tr");
-  var wrap = document.createElement("div");
-  wrap.style.overflowX = "auto";
-  var tbl = document.createElement("table");
-  tbl.className = "classifica-table";
+  var wrap = document.createElement("div"); wrap.style.overflowX = "auto";
+  var tbl = document.createElement("table"); tbl.className = "classifica-table";
   var thead = document.createElement("thead");
-  thead.innerHTML = "<tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>P</th><th>S</th><th>GF</th><th>GS</th><th>PT</th></tr>";
+  thead.innerHTML = "<tr><th>#</th><th>Squadra</th><th>Pt</th><th>G</th><th>V</th><th>N</th><th>P</th><th>GF</th><th>GS</th><th>Diff</th></tr>";
   tbl.appendChild(thead);
   var tbody = document.createElement("tbody");
   var pos = 0;
+
   for (var i = 0; i < rows.length; i++) {
     var cells = rows[i].querySelectorAll("td");
-    if (cells.length < 4) continue;
+    if (cells.length < 5) continue;
     var teamName = "";
     var nums = [];
     for (var c = 0; c < cells.length; c++) {
       var v = cells[c].textContent.trim();
-      if (v.length > 2 && isNaN(v) && v !== "-") teamName = v;
-      else if (!isNaN(v) && v !== "") nums.push(v);
+      if (v === "" || v === "-") continue;
+      if (!isNaN(parseFloat(v)) && v.length < 5) {
+        nums.push(v);
+      } else if (v.length > 2 && isNaN(parseFloat(v))) {
+        if (v.length > teamName.length) teamName = v;
+      }
     }
-    if (!teamName) continue;
+    if (!teamName || nums.length < 3) continue;
     pos++;
     var tr = document.createElement("tr");
     if (teamName.toLowerCase().indexOf("scual") >= 0) tr.className = "scualo";
-    var tdPos = document.createElement("td"); tdPos.textContent = pos; tr.appendChild(tdPos);
-    var tdName = document.createElement("td"); tdName.textContent = teamName; tr.appendChild(tdName);
-    for (var n = 0; n < 7; n++) {
-      var td = document.createElement("td"); td.textContent = nums[n] || "-"; tr.appendChild(td);
+    var td0 = document.createElement("td"); td0.textContent = pos; tr.appendChild(td0);
+    var td1 = document.createElement("td"); td1.textContent = teamName; tr.appendChild(td1);
+    for (var n = 0; n < 8; n++) {
+      var td = document.createElement("td"); td.textContent = nums[n] !== undefined ? nums[n] : "-"; tr.appendChild(td);
     }
     tbody.appendChild(tr);
   }
-  tbl.appendChild(tbody);
-  wrap.appendChild(tbl);
-  container.innerHTML = "";
-  container.appendChild(wrap);
+  if (pos === 0) {
+    var e2 = document.createElement("div"); e2.className = "rs-error";
+    e2.textContent = "Nessun dato. Il campionato potrebbe non essere iniziato.";
+    container.innerHTML = ""; container.appendChild(e2); return;
+  }
+  tbl.appendChild(tbody); wrap.appendChild(tbl);
+  container.innerHTML = ""; container.appendChild(wrap);
 }
 
 function parseRisultati(html) {
