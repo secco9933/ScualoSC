@@ -728,7 +728,7 @@ function loadRomagnaSport(tab) {
   container.appendChild(loadDiv);
 
   var tipo = (tab === "classifica") ? "classifica" : "risultati";
-  var url = PROXY_URL + "?gir=" + RS_GIR + "&tipo=" + tipo + "&anno=2025";
+  var url = PROXY_URL + "?gir=" + RS_GIR + "&tipo=" + tipo + "&anno=2025&team=scual";
 
   fetch(url)
     .then(function(r) { return r.json(); })
