@@ -10,6 +10,39 @@
 <!-- Firebase compat (no module needed) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+// PIN - caricato subito, prima di tutto il resto
+var CORRECT_PIN = "2025";
+var pinBuffer = "";
+function updatePinDots() {
+  var dots = document.querySelectorAll(".pin-dot");
+  for (var i = 0; i < dots.length; i++) {
+    dots[i].classList.toggle("filled", i < pinBuffer.length);
+  }
+}
+function checkPin() {
+  if (pinBuffer === CORRECT_PIN) {
+    document.getElementById("pinScreen").style.display = "none";
+    document.getElementById("mainApp").style.display = "flex";
+    if (typeof loadAllData === "function") loadAllData();
+  } else if (pinBuffer.length === 4) {
+    var disp = document.getElementById("pinDisplay");
+    disp.classList.add("shake");
+    setTimeout(function() {
+      disp.classList.remove("shake");
+      pinBuffer = "";
+      updatePinDots();
+    }, 500);
+  }
+}
+function pinPress(val) {
+  if (val === "del") { pinBuffer = pinBuffer.slice(0, -1); updatePinDots(); return; }
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += val;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(checkPin, 150);
+}
+</script>
 
 <style>
 :root {
@@ -395,38 +428,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ── PIN ────────────────────────────────────────────────────
-const CORRECT_PIN = "2025";
-let pinBuffer = "";
-
-function updatePinDots() {
-  document.querySelectorAll(".pin-dot").forEach((d, i) => {
-    d.classList.toggle("filled", i < pinBuffer.length);
-  });
-}
-
-function checkPin() {
-  if (pinBuffer === CORRECT_PIN) {
-    document.getElementById("pinScreen").style.display = "none";
-    document.getElementById("mainApp").style.display = "flex";
-    loadAllData();
-  } else if (pinBuffer.length === 4) {
-    document.getElementById("pinDisplay").classList.add("shake");
-    setTimeout(function() {
-      document.getElementById("pinDisplay").classList.remove("shake");
-      pinBuffer = "";
-      updatePinDots();
-    }, 500);
-  }
-}
-
-function pinPress(val) {
-  if (val === "del") { pinBuffer = pinBuffer.slice(0, -1); updatePinDots(); return; }
-  if (pinBuffer.length >= 4) return;
-  pinBuffer += val;
-  updatePinDots();
-  if (pinBuffer.length === 4) setTimeout(checkPin, 150);
-}
+// PIN gestito nel blocco script in <head>
 
 // ── NAV ────────────────────────────────────────────────────
 var currentSection = "dashboard";
