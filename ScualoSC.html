@@ -451,30 +451,54 @@ function renderGiocatori() {
     return (g.nome + " " + g.cognome).toLowerCase().indexOf(q) >= 0 || String(g.numero||"").indexOf(q) >= 0;
   });
 
-  var giocatoriList = allFiltered.filter(function(g) { return g.ruolo !== "dirigente"; });
-  var dirigentiList = allFiltered.filter(function(g) { return g.ruolo === "dirigente"; });
+  // Giocatori: ruolo == "giocatore" OR "dirigente-giocatore"
+  var giocatoriList = allFiltered.filter(function(g) {
+    return g.ruolo !== "dirigente";
+  });
+  // Dirigenti: ruolo == "dirigente" OR "dirigente-giocatore"
+  var dirigentiList = allFiltered.filter(function(g) {
+    return g.ruolo === "dirigente" || g.ruolo === "dirigente-giocatore";
+  });
 
-  function makeSection(title, list) {
+  function makePlayerRow(g, showD) {
+    var row = document.createElement("div"); row.className = "player-row";
+    var num = document.createElement("div"); num.className = "player-num";
+    if (showD) {
+      num.textContent = "D";
+      num.style.color = "var(--grey1)";
+      num.style.fontSize = "16px";
+    } else {
+      num.textContent = g.numero || "-";
+    }
+    row.appendChild(num);
+    var info = document.createElement("div"); info.className = "player-info";
+    var name = document.createElement("div"); name.className = "player-name";
+    name.textContent = g.cognome + " " + g.nome;
+    if (g.ruolo === "dirigente-giocatore") {
+      var badge = document.createElement("span");
+      badge.textContent = " DG";
+      badge.style.cssText = "font-size:10px;color:var(--grey1);font-family:Barlow,sans-serif;font-weight:500;letter-spacing:1px;";
+      name.appendChild(badge);
+    }
+    info.appendChild(name);
+    var meta = document.createElement("div"); meta.className = "player-meta";
+    meta.textContent = (g.tessera || "No tessera") + " - " + (g.dataNascita || "-");
+    info.appendChild(meta);
+    row.appendChild(info);
+    var btn = document.createElement("button"); btn.className = "btn-icon btn-danger";
+    btn.dataset.id = g.id;
+    btn.innerHTML = "<svg class='delete-svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><polyline points='3,6 5,6 21,6'/><path d='M19,6l-1,14H6L5,6'/><path d='M10,11v6M14,11v6'/><path d='M9,6V4h6v2'/></svg>";
+    btn.addEventListener("click", function() { deleteGiocatore(this.dataset.id); });
+    row.appendChild(btn);
+    return row;
+  }
+
+  function makeSection(title, list, showD) {
     if (!list.length) return;
     var lbl = document.createElement("div"); lbl.className = "roster-section-label";
-    lbl.textContent = title; container.appendChild(lbl);
-    list.forEach(function(g) {
-      var row = document.createElement("div"); row.className = "player-row";
-      var num = document.createElement("div"); num.className = "player-num";
-      num.textContent = g.ruolo === "dirigente" ? "D" : (g.numero || "-"); row.appendChild(num);
-      var info = document.createElement("div"); info.className = "player-info";
-      var name = document.createElement("div"); name.className = "player-name";
-      name.textContent = g.cognome + " " + g.nome; info.appendChild(name);
-      var meta = document.createElement("div"); meta.className = "player-meta";
-      meta.textContent = (g.tessera || "No tessera") + " - " + (g.dataNascita || "-"); info.appendChild(meta);
-      row.appendChild(info);
-      var btn = document.createElement("button"); btn.className = "btn-icon btn-danger";
-      btn.dataset.id = g.id;
-      btn.innerHTML = "<svg class='delete-svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><polyline points='3,6 5,6 21,6'/><path d='M19,6l-1,14H6L5,6'/><path d='M10,11v6M14,11v6'/><path d='M9,6V4h6v2'/></svg>";
-      btn.addEventListener("click", function() { deleteGiocatore(this.dataset.id); });
-      row.appendChild(btn);
-      container.appendChild(row);
-    });
+    lbl.textContent = title + " (" + list.length + ")";
+    container.appendChild(lbl);
+    list.forEach(function(g) { container.appendChild(makePlayerRow(g, showD)); });
   }
 
   if (!allFiltered.length) {
@@ -482,8 +506,8 @@ function renderGiocatori() {
     e.textContent = "Nessun risultato trovato"; container.appendChild(e); return;
   }
 
-  makeSection("Giocatori", giocatoriList);
-  makeSection("Dirigenti", dirigentiList);
+  makeSection("Giocatori", giocatoriList, false);
+  makeSection("Dirigenti", dirigentiList, true);
 }
 
 function deleteGiocatore(id) {
