@@ -727,7 +727,7 @@ function loadRomagnaSport(tab) {
   container.innerHTML = "";
   container.appendChild(loadDiv);
 
-  var tipo = (tab === "classifica") ? "classifica" : "risultati";
+  var tipo = (tab === "classifica") ? "classifica" : "calendario";
   var url = PROXY_URL + "?gir=" + RS_GIR + "&tipo=" + tipo + "&anno=2025&team=scual";
 
   fetch(url)
@@ -768,24 +768,45 @@ function renderClassifica(data) {
 
 function renderRisultati(data) {
   var container = document.getElementById("rs-content");
+  // Sort by date chronologically
+  data.sort(function(a, b) {
+    var da = a.data ? a.data.split("/").reverse().join("") : "0";
+    var db = b.data ? b.data.split("/").reverse().join("") : "0";
+    return da.localeCompare(db);
+  });
   var wrap = document.createElement("div"); wrap.className = "rs-risultati";
   for (var i = 0; i < data.length; i++) {
     var m = data[i];
     var isScualo = (m.casa + m.ospite).toLowerCase().indexOf("scual") >= 0;
     var card = document.createElement("div"); card.className = "rs-match";
-    if (isScualo) card.style.borderColor = "var(--grey1)";
-    if (m.data) {
-      var dt = document.createElement("div"); dt.className = "rs-match-date"; dt.textContent = m.data; card.appendChild(dt);
-    }
+    if (isScualo) card.style.borderColor = "rgba(255,255,255,0.4)";
+
+    // Header: giornata + data
+    var hdr = document.createElement("div"); hdr.className = "rs-match-date";
+    hdr.textContent = (m.giornata ? m.giornata : "") + (m.data ? "  —  " + m.data : "");
+    card.appendChild(hdr);
+
+    // Teams + score row
     var row = document.createElement("div"); row.className = "rs-match-teams";
     var casa = document.createElement("div");
     casa.className = "rs-team" + (m.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
     casa.textContent = m.casa; row.appendChild(casa);
-    var sc = document.createElement("div"); sc.className = "rs-score"; sc.textContent = m.score; row.appendChild(sc);
+
+    var sc = document.createElement("div"); sc.className = "rs-score";
+    if (m.score) {
+      sc.textContent = m.score;
+    } else {
+      sc.textContent = "vs";
+      sc.style.fontSize = "14px";
+      sc.style.color = "var(--grey1)";
+    }
+    row.appendChild(sc);
+
     var ospite = document.createElement("div");
     ospite.className = "rs-team right" + (m.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
     ospite.textContent = m.ospite; row.appendChild(ospite);
-    card.appendChild(row); wrap.appendChild(card);
+    card.appendChild(row);
+    wrap.appendChild(card);
   }
   container.innerHTML = ""; container.appendChild(wrap);
 }
