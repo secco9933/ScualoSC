@@ -786,19 +786,27 @@ function generatePDF() {
   doc.setFontSize(9); doc.setFont("helvetica","bold");
   doc.setFont("helvetica","bold"); doc.text("Allenatore",margin,y);
   doc.line(margin+20,y+0.5,margin+90,y+0.5);
-  // Dirigenti selezionati
+  // Dirigenti selezionati - uno per riga per evitare overflow
   var dirSelezionati = giocatori.filter(function(g) { return selectedForDistintaDir.has(g.id); });
   if (dirSelezionati.length > 0) {
-    y+=8; doc.setFont("helvetica","bold"); doc.text("Dirigenti:",margin,y);
+    y+=8;
+    doc.setFontSize(9); doc.setFont("helvetica","bold");
+    doc.text("Dirigenti:", margin, y);
     doc.setFont("helvetica","normal");
-    var dirNames = dirSelezionati.map(function(g) { return g.cognome + " " + g.nome; }).join(" - ");
-    doc.text(dirNames, margin+22, y);
+    // Split into rows of max 3 per line to avoid overflow
+    var perRow = 3;
+    for (var di = 0; di < dirSelezionati.length; di += perRow) {
+      var rowNames = dirSelezionati.slice(di, di + perRow).map(function(g) {
+        return g.cognome + " " + g.nome;
+      }).join("   |   ");
+      doc.text(rowNames, margin + 22, y);
+      if (di + perRow < dirSelezionati.length) { y += 6; }
+    }
   }
-  y+=8; doc.setFont("helvetica","bold"); doc.text("Dirigente accompagnatore",margin,y); doc.line(margin+52,y+0.5,margin+90,y+0.5);
-  y+=8; doc.text("Dir. Add. Arbitro",margin,y); doc.line(margin+34,y+0.5,margin+72,y+0.5);
-  y+=8; doc.text("Dirigente",margin,y); doc.line(margin+18,y+0.5,margin+56,y+0.5);
-  y+=8; doc.text("Guardalinee",margin,y); doc.line(margin+22,y+0.5,margin+60,y+0.5);
+  y+=8; doc.setFont("helvetica","bold"); doc.text("Guardalinee",margin,y);
+  doc.line(margin+22,y+0.5,margin+80,y+0.5);
   y+=18;
+  doc.setFontSize(9);
   doc.text("Il Dirigente",margin+20,y,{align:"center"}); doc.text("Arbitro Sig.",W-margin-30,y,{align:"center"});
   doc.line(margin,y+12,margin+60,y+12); doc.line(W-margin-65,y+12,W-margin,y+12);
   doc.save("distinta_scualo.pdf");
