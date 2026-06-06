@@ -768,11 +768,11 @@ function renderClassifica(data) {
 
 function renderRisultati(data) {
   var container = document.getElementById("rs-content");
-  // Sort by date chronologically
+  // Sort by giornata number
   data.sort(function(a, b) {
-    var da = a.data ? a.data.split("/").reverse().join("") : "0";
-    var db = b.data ? b.data.split("/").reverse().join("") : "0";
-    return da.localeCompare(db);
+    var na = a.giornata ? parseInt(a.giornata.match(/\d+/)[0]) : 0;
+    var nb = b.giornata ? parseInt(b.giornata.match(/\d+/)[0]) : 0;
+    return na - nb;
   });
   var wrap = document.createElement("div"); wrap.className = "rs-risultati";
   for (var i = 0; i < data.length; i++) {
