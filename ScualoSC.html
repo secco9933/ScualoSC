@@ -238,6 +238,14 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
       </div>
       <div class="dist-strip" id="distintatags"><span class="strip-empty">Seleziona fino a 18 giocatori</span></div>
       <div class="distinta-grid" id="distintagrid"></div>
+
+      <div class="dist-meta" style="margin-top:16px">
+        <span class="dist-section-label">Dirigenti in distinta</span>
+        <span class="dist-counter" id="dist-dir-counter">0 sel.</span>
+      </div>
+      <div class="distinta-grid" id="distintagrid-dir"></div>
+      <div class="dist-strip" id="distintatags-dir"><span class="strip-empty">Nessun dirigente selezionato</span></div>
+
       <button class="btn-gen" id="btnGenPDF" onclick="generatePDF()" disabled>GENERA PDF DISTINTA</button>
     </div>
 
@@ -344,6 +352,7 @@ var giocatori = [];
 var partite = [];
 var currentSection = "dashboard";
 var selectedForDistinta = new Set();
+var selectedForDistintaDir = new Set();
 var MAX_DISTINTA = 18;
 
 // Firebase init
@@ -474,12 +483,7 @@ function renderGiocatori() {
     var info = document.createElement("div"); info.className = "player-info";
     var name = document.createElement("div"); name.className = "player-name";
     name.textContent = g.cognome + " " + g.nome;
-    if (g.ruolo === "dirigente-giocatore") {
-      var badge = document.createElement("span");
-      badge.textContent = " DG";
-      badge.style.cssText = "font-size:10px;color:var(--grey1);font-family:Barlow,sans-serif;font-weight:500;letter-spacing:1px;";
-      name.appendChild(badge);
-    }
+
     info.appendChild(name);
     var meta = document.createElement("div"); meta.className = "player-meta";
     meta.textContent = (g.tessera || "No tessera") + " - " + (g.dataNascita || "-");
@@ -536,31 +540,67 @@ function savePlayer() {
 
 // DISTINTA
 function renderDistintaPlayers() {
+  // GIOCATORI (giocatore + dirigente-giocatore)
   var container = document.getElementById("distintagrid");
-  container.innerHTML = "";
-  if (!giocatori.length) {
-    var e = document.createElement("div"); e.className = "empty-state"; e.textContent = "Caricamento..."; container.appendChild(e); return;
-  }
-  for (var i = 0; i < giocatori.length; i++) {
-    var g = giocatori[i];
-    var sel = selectedForDistinta.has(g.id);
-    var card = document.createElement("div");
-    card.className = "dist-card" + (sel ? " selected" : "");
-    card.dataset.id = g.id;
-    var num = document.createElement("div"); num.className = "dist-num"; num.textContent = "N. " + (g.numero || "-"); card.appendChild(num);
-    var nm = document.createElement("div"); nm.className = "dist-name"; nm.textContent = g.cognome;
-    var sp = document.createElement("span"); sp.textContent = g.nome; nm.appendChild(document.createElement("br")); nm.appendChild(sp);
-    card.appendChild(nm);
-    if (sel) {
-      var chk = document.createElement("div"); chk.className = "dist-check";
-      chk.innerHTML = '<svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#0a0a0a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      card.appendChild(chk);
+  var giocatoriList = giocatori.filter(function(g) { return g.ruolo !== "dirigente"; });
+  var dirigentiList = giocatori.filter(function(g) { return g.ruolo === "dirigente" || g.ruolo === "dirigente-giocatore"; });
+
+  if (!giocatoriList.length) {
+    container.innerHTML = "<div class='empty-state'>Caricamento...</div>"; 
+  } else {
+    container.innerHTML = "";
+    for (var i = 0; i < giocatoriList.length; i++) {
+      var g = giocatoriList[i];
+      var sel = selectedForDistinta.has(g.id);
+      var card = document.createElement("div");
+      card.className = "dist-card" + (sel ? " selected" : "");
+      card.dataset.id = g.id;
+      var num = document.createElement("div"); num.className = "dist-num"; num.textContent = "N. " + (g.numero || "-"); card.appendChild(num);
+      var nm = document.createElement("div"); nm.className = "dist-name"; nm.textContent = g.cognome;
+      var sp = document.createElement("br"); nm.appendChild(sp);
+      var sp2 = document.createElement("span"); sp2.textContent = g.nome; nm.appendChild(sp2);
+      card.appendChild(nm);
+      if (sel) {
+        var chk = document.createElement("div"); chk.className = "dist-check";
+        chk.innerHTML = "<svg viewBox='0 0 12 12' fill='none'><path d='M2 6l3 3 5-5' stroke='#0a0a0a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>";
+        card.appendChild(chk);
+      }
+      card.addEventListener("click", function() { toggleDistinta(this.dataset.id); });
+      container.appendChild(card);
     }
-    card.addEventListener("click", function() { toggleDistinta(this.dataset.id); });
-    container.appendChild(card);
   }
+
   document.getElementById("dist-counter").textContent = selectedForDistinta.size + "/18";
   document.getElementById("dist-counter").classList.toggle("full", selectedForDistinta.size >= MAX_DISTINTA);
+
+  // DIRIGENTI
+  var dirContainer = document.getElementById("distintagrid-dir");
+  if (!dirigentiList.length) {
+    dirContainer.innerHTML = "";
+  } else {
+    dirContainer.innerHTML = "";
+    for (var i = 0; i < dirigentiList.length; i++) {
+      var g = dirigentiList[i];
+      var sel = selectedForDistintaDir.has(g.id);
+      var card = document.createElement("div");
+      card.className = "dist-card" + (sel ? " selected" : "");
+      card.dataset.id = g.id;
+      var num = document.createElement("div"); num.className = "dist-num"; num.textContent = "DIR"; card.appendChild(num);
+      var nm = document.createElement("div"); nm.className = "dist-name"; nm.textContent = g.cognome;
+      var sp = document.createElement("br"); nm.appendChild(sp);
+      var sp2 = document.createElement("span"); sp2.textContent = g.nome; nm.appendChild(sp2);
+      card.appendChild(nm);
+      if (sel) {
+        var chk = document.createElement("div"); chk.className = "dist-check";
+        chk.innerHTML = "<svg viewBox='0 0 12 12' fill='none'><path d='M2 6l3 3 5-5' stroke='#0a0a0a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>";
+        card.appendChild(chk);
+      }
+      card.addEventListener("click", function() { toggleDistintaDir(this.dataset.id); });
+      dirContainer.appendChild(card);
+    }
+  }
+  document.getElementById("dist-dir-counter").textContent = selectedForDistintaDir.size + " sel.";
+  renderDistintaDirStrip();
 }
 
 function toggleDistinta(id) {
@@ -569,6 +609,30 @@ function toggleDistinta(id) {
   renderDistintaPlayers();
   renderDistintaStrip();
   document.getElementById("btnGenPDF").disabled = (selectedForDistinta.size === 0);
+}
+
+function toggleDistintaDir(id) {
+  if (selectedForDistintaDir.has(id)) selectedForDistintaDir.delete(id);
+  else selectedForDistintaDir.add(id);
+  renderDistintaPlayers();
+  document.getElementById("btnGenPDF").disabled = (selectedForDistinta.size === 0);
+}
+
+function renderDistintaDirStrip() {
+  var strip = document.getElementById("distintatags-dir");
+  strip.innerHTML = "";
+  if (!selectedForDistintaDir.size) {
+    var e = document.createElement("span"); e.className = "strip-empty"; e.textContent = "Nessun dirigente selezionato"; strip.appendChild(e); return;
+  }
+  selectedForDistintaDir.forEach(function(id) {
+    var g = null;
+    for (var i = 0; i < giocatori.length; i++) { if (giocatori[i].id === id) { g = giocatori[i]; break; } }
+    if (!g) return;
+    var tag = document.createElement("span"); tag.className = "strip-tag"; tag.textContent = g.cognome;
+    tag.dataset.id = id;
+    tag.addEventListener("click", function() { toggleDistintaDir(this.dataset.id); });
+    strip.appendChild(tag);
+  });
 }
 
 function renderDistintaStrip() {
@@ -722,6 +786,14 @@ function generatePDF() {
   doc.setFontSize(9); doc.setFont("helvetica","bold");
   doc.setFont("helvetica","bold"); doc.text("Allenatore",margin,y);
   doc.line(margin+20,y+0.5,margin+90,y+0.5);
+  // Dirigenti selezionati
+  var dirSelezionati = giocatori.filter(function(g) { return selectedForDistintaDir.has(g.id); });
+  if (dirSelezionati.length > 0) {
+    y+=8; doc.setFont("helvetica","bold"); doc.text("Dirigenti:",margin,y);
+    doc.setFont("helvetica","normal");
+    var dirNames = dirSelezionati.map(function(g) { return g.cognome + " " + g.nome; }).join(" - ");
+    doc.text(dirNames, margin+22, y);
+  }
   y+=8; doc.setFont("helvetica","bold"); doc.text("Dirigente accompagnatore",margin,y); doc.line(margin+52,y+0.5,margin+90,y+0.5);
   y+=8; doc.text("Dir. Add. Arbitro",margin,y); doc.line(margin+34,y+0.5,margin+72,y+0.5);
   y+=8; doc.text("Dirigente",margin,y); doc.line(margin+18,y+0.5,margin+56,y+0.5);
