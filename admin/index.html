@@ -881,6 +881,7 @@ function loadRomagnaSport(tab) {
         container.innerHTML = ""; container.appendChild(e); return;
       }
       if (tipo.indexOf("classifica") >= 0) renderClassifica(json.data);
+      else if (tipo === "coppa-calendario") renderRisultatiCoppa(json.data);
       else renderRisultati(json.data);
     })
     .catch(function() { showRsError(tab); });
@@ -906,6 +907,60 @@ function renderClassifica(data) {
   }
   tbl.appendChild(tbody); wrap.appendChild(tbl);
   container.innerHTML = ""; container.appendChild(wrap);
+}
+
+function renderRisultatiCoppa(data) {
+  var container = document.getElementById("rs-content");
+  container.innerHTML = "";
+
+  // Group by fase (giornata field) preserving page order
+  var groups = [];
+  var lastFase = null;
+  data.forEach(function(m) {
+    var fase = m.giornata || "Partite";
+    if (fase !== lastFase) {
+      groups.push({ fase: fase, items: [] });
+      lastFase = fase;
+    }
+    groups[groups.length - 1].items.push(m);
+  });
+
+  groups.forEach(function(grp) {
+    var sec = document.createElement("div"); sec.className = "rs-section";
+    var lbl = document.createElement("div"); lbl.className = "rs-section-label";
+    lbl.textContent = grp.fase; sec.appendChild(lbl);
+    var wrap = document.createElement("div"); wrap.className = "rs-risultati";
+    grp.items.forEach(function(m) {
+      var card = document.createElement("div"); card.className = "rs-match";
+      if ((m.casa + m.ospite).toLowerCase().indexOf("scual") >= 0) card.style.borderColor = "rgba(255,255,255,0.35)";
+      if (m.data) {
+        var hdr = document.createElement("div"); hdr.className = "rs-match-date";
+        hdr.textContent = m.data; card.appendChild(hdr);
+      }
+      var row = document.createElement("div"); row.className = "rs-match-teams";
+      var casa = document.createElement("div");
+      casa.className = "rs-team" + (m.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
+      casa.textContent = m.casa; row.appendChild(casa);
+      var mid = document.createElement("div"); mid.className = "rs-score";
+      if (m.score) { mid.textContent = m.score; }
+      else {
+        mid.textContent = m.data || "-";
+        mid.style.fontSize = "12px"; mid.style.color = "var(--grey1)";
+        mid.style.fontFamily = "Barlow,sans-serif"; mid.style.fontWeight = "500";
+      }
+      row.appendChild(mid);
+      var ospite = document.createElement("div");
+      ospite.className = "rs-team right" + (m.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
+      ospite.textContent = m.ospite; row.appendChild(ospite);
+      card.appendChild(row); wrap.appendChild(card);
+    });
+    sec.appendChild(wrap); container.appendChild(sec);
+  });
+
+  if (!groups.length) {
+    var e = document.createElement("div"); e.className = "rs-error";
+    e.textContent = "Nessuna partita disponibile."; container.appendChild(e);
+  }
 }
 
 function renderRisultati(data) {
