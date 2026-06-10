@@ -100,6 +100,9 @@ body{overflow:hidden}
 .search-bar:focus{border-color:var(--grey1)}
 
 /* ═══ CAMPIONATO ═══ */
+.comp-switch{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--grey3);border-radius:9px;overflow:hidden}
+.comp-btn{flex:1;padding:11px 0;border:none;background:transparent;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1.5px;text-transform:uppercase;transition:all 0.15s}
+.comp-btn.active{background:var(--white);color:var(--black)}
 .rs-tabs{display:flex;gap:8px;margin-bottom:16px}
 .rs-tab{flex:1;padding:9px 0;border-radius:7px;border:1px solid var(--grey3);background:transparent;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px}
 .rs-tab.active{background:var(--white);border-color:var(--white);color:var(--black)}
@@ -198,7 +201,11 @@ body{overflow:hidden}
     <!-- ═══ CAMPIONATO ═══ -->
     <div class="section" id="sec-campionato">
       <div class="inner">
-        <div class="page-title">Campionato</div>
+        <div class="page-title" id="comp-title">Campionato</div>
+        <div class="comp-switch">
+          <button class="comp-btn active" id="comp-campionato" onclick="setCompetizione(this,'campionato')">Campionato</button>
+          <button class="comp-btn" id="comp-coppa" onclick="setCompetizione(this,'coppa')">Coppa</button>
+        </div>
         <div class="rs-tabs">
           <button class="rs-tab active" id="tab-classifica" onclick="rsTab(this,'classifica')">Classifica</button>
           <button class="rs-tab" id="tab-risultati" onclick="rsTab(this,'risultati')">Risultati e Calendario</button>
@@ -234,6 +241,10 @@ var PROXY_URL = "https://romagnasport-t5ev22ab5a-uc.a.run.app";
 var RS_GIR = "293";
 var cachedCalendario = null;
 var cachedClassifica = null;
+var cachedCoppaCalendario = null;
+var cachedCoppaClassifica = null;
+var currentCompetizione = "campionato";
+var COPPA_ID = "650";
 
 try {
   firebase.initializeApp({
@@ -468,6 +479,14 @@ function renderRosa() {
 }
 
 /* ═══ CAMPIONATO ═══ */
+function setCompetizione(btn, comp) {
+  document.querySelectorAll(".comp-btn").forEach(function(b) { b.classList.remove("active"); });
+  btn.classList.add("active");
+  currentCompetizione = comp;
+  document.getElementById("comp-title").textContent = comp === "coppa" ? "Coppa" : "Campionato";
+  loadRomagnaSport(rsCurrentTab);
+}
+
 function rsTab(btn, tab) {
   document.querySelectorAll(".rs-tab").forEach(function(b) { b.classList.remove("active"); });
   btn.classList.add("active");
@@ -488,13 +507,19 @@ function loadRomagnaSport(tab) {
   var container = document.getElementById("rs-content");
   var loadDiv = document.createElement("div"); loadDiv.className = "rs-loading"; loadDiv.textContent = "Caricamento...";
   container.innerHTML = ""; container.appendChild(loadDiv);
-  var tipo = (tab === "classifica") ? "classifica" : "calendario";
 
-  // Use cache if available
+  var isCoppa = currentCompetizione === "coppa";
+  var tipo;
+  if (isCoppa) tipo = (tab === "classifica") ? "coppa-classifica" : "coppa-calendario";
+  else tipo = (tab === "classifica") ? "classifica" : "calendario";
+
+  // Cache
   if (tipo === "classifica" && cachedClassifica) { renderClassifica(cachedClassifica); return; }
   if (tipo === "calendario" && cachedCalendario) { renderRisultati(cachedCalendario); return; }
+  if (tipo === "coppa-classifica" && cachedCoppaClassifica) { renderClassifica(cachedCoppaClassifica); return; }
+  if (tipo === "coppa-calendario" && cachedCoppaCalendario) { renderRisultati(cachedCoppaCalendario); return; }
 
-  var url = PROXY_URL + "?gir=" + RS_GIR + "&tipo=" + tipo + "&anno=2025&team=scual";
+  var url = PROXY_URL + "?gir=" + RS_GIR + "&coppa=" + COPPA_ID + "&tipo=" + tipo + "&anno=2025&team=scual";
   fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(json) {
@@ -504,7 +529,9 @@ function loadRomagnaSport(tab) {
         container.innerHTML = ""; container.appendChild(e); return;
       }
       if (tipo === "classifica") { cachedClassifica = json.data; renderClassifica(json.data); }
-      else { cachedCalendario = json.data; renderRisultati(json.data); }
+      else if (tipo === "calendario") { cachedCalendario = json.data; renderRisultati(json.data); }
+      else if (tipo === "coppa-classifica") { cachedCoppaClassifica = json.data; renderClassifica(json.data); }
+      else { cachedCoppaCalendario = json.data; renderRisultati(json.data); }
     })
     .catch(function() { showRsError(tab); });
 }
