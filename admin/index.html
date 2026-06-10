@@ -127,6 +127,9 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 #score-fields{display:none;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .empty-state{text-align:center;padding:40px 0;color:var(--grey2);font-size:13px;font-style:italic}
 .roster-section-label{font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--grey1);padding:14px 0 8px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.comp-switch{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--grey3);border-radius:9px;overflow:hidden}
+.comp-btn{flex:1;padding:11px 0;border:none;background:transparent;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1.5px;text-transform:uppercase;transition:all 0.15s}
+.comp-btn.active{background:var(--white);color:var(--black)}
 .rs-tabs{display:flex;gap:8px;margin-bottom:16px}
 .rs-tab{flex:1;padding:9px 0;border-radius:7px;border:1px solid var(--grey3);background:transparent;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px}
 .rs-tab.active{background:var(--white);border-color:var(--white);color:var(--black)}
@@ -258,7 +261,11 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
     </div>
 
     <div class="section" id="sec-statistiche">
-      <div class="sec-title" style="margin-bottom:14px">Campionato</div>
+      <div class="sec-title" style="margin-bottom:14px" id="comp-title">Campionato</div>
+      <div class="comp-switch">
+        <button class="comp-btn active" onclick="setCompetizione(this,'campionato')">Campionato</button>
+        <button class="comp-btn" onclick="setCompetizione(this,'coppa')">Coppa</button>
+      </div>
       <div class="rs-tabs">
         <button class="rs-tab active" onclick="rsTab(this,'classifica')">Classifica</button>
         <button class="rs-tab" onclick="rsTab(this,'risultati')">Risultati e Calendario</button>
@@ -815,7 +822,18 @@ function generatePDF() {
 // ROMAGNA SPORT
 var PROXY_URL = "https://romagnasport-t5ev22ab5a-uc.a.run.app";
 var RS_GIR = "293";
+var COPPA_ID = "650";
 var rsCurrentTab = "classifica";
+var currentCompetizione = "campionato";
+
+function setCompetizione(btn, comp) {
+  var btns = document.querySelectorAll(".comp-btn");
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove("active");
+  btn.classList.add("active");
+  currentCompetizione = comp;
+  document.getElementById("comp-title").textContent = comp === "coppa" ? "Coppa" : "Campionato";
+  loadRomagnaSport(rsCurrentTab);
+}
 
 function rsTab(btn, tab) {
   var btns = document.querySelectorAll(".rs-tab");
@@ -847,8 +865,12 @@ function loadRomagnaSport(tab) {
   container.innerHTML = "";
   container.appendChild(loadDiv);
 
-  var tipo = (tab === "classifica") ? "classifica" : "calendario";
-  var url = PROXY_URL + "?gir=" + RS_GIR + "&tipo=" + tipo + "&anno=2025&team=scual";
+  var isCoppa = currentCompetizione === "coppa";
+  var tipo;
+  if (isCoppa) tipo = (tab === "classifica") ? "coppa-classifica" : "coppa-calendario";
+  else tipo = (tab === "classifica") ? "classifica" : "calendario";
+
+  var url = PROXY_URL + "?gir=" + RS_GIR + "&coppa=" + COPPA_ID + "&tipo=" + tipo + "&anno=2025&team=scual";
 
   fetch(url)
     .then(function(r) { return r.json(); })
@@ -858,7 +880,7 @@ function loadRomagnaSport(tab) {
         e.textContent = json.error || "Nessun dato disponibile.";
         container.innerHTML = ""; container.appendChild(e); return;
       }
-      if (tipo === "classifica") renderClassifica(json.data);
+      if (tipo.indexOf("classifica") >= 0) renderClassifica(json.data);
       else renderRisultati(json.data);
     })
     .catch(function() { showRsError(tab); });
