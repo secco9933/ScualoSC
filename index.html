@@ -144,6 +144,25 @@ body{overflow:hidden}
 .bracket-score{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;min-width:22px;text-align:right}
 .bracket-divider{height:1px;background:var(--border);margin:0 12px}
 .bracket-detail{font-size:10px;color:var(--grey2);padding:6px 12px;line-height:1.6;border-top:1px solid var(--border)}
+
+.bracket-wrap{overflow-x:auto;padding:8px 0 16px;-webkit-overflow-scrolling:touch}
+.bracket-flex{display:flex;flex-direction:row;align-items:center;gap:0;width:max-content;min-width:100%}
+.bracket-col{display:flex;flex-direction:column;align-items:stretch;flex-shrink:0;width:132px}
+.bracket-col-lbl{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--grey2);text-align:center;padding:0 0 8px}
+.bracket-spacer{flex:1}
+.bm{background:var(--black3);border:1px solid var(--grey3);border-radius:8px;overflow:hidden;margin:5px 0;width:132px}
+.bm.ours{border-color:rgba(255,255,255,0.4)}
+.bm.finale{width:132px}
+.bt{display:flex;align-items:center;padding:7px 9px;gap:5px;min-height:28px}
+.bt.win{background:rgba(255,255,255,0.1)}
+.bt.lose{opacity:0.3}
+.bt-n{font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;flex:1;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt-n.sc{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:2px}
+.bt-s{font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:900;min-width:16px;text-align:right;color:var(--white);flex-shrink:0}
+.bm-div{height:1px;background:var(--border)}
+.bm-det{font-size:9px;color:var(--grey2);padding:3px 9px;border-top:1px solid var(--border);letter-spacing:0.5px}
+.bc{display:flex;flex-direction:column;justify-content:space-around;align-self:stretch;flex-shrink:0;width:20px}
+.bc svg{width:20px;height:100%;display:block}
 </style>
 </head>
 <body>
@@ -580,193 +599,164 @@ function renderClassifica(data) {
 
 
 
+
 function renderTabelloneCoppa(data) {
   var container = document.getElementById("rs-content");
   container.innerHTML = "";
 
-  var gironeData = data.filter(function(m) { return m.giornata.indexOf("1a Fase") >= 0; });
-  var elimData = data.filter(function(m) { return m.giornata.indexOf("1a Fase") < 0; });
+  var gironeData = data.filter(function(m){return m.giornata.indexOf("1a Fase")>=0;});
+  var elimData   = data.filter(function(m){return m.giornata.indexOf("1a Fase")<0;});
 
-  // ── GIRONE SUMMARY ──
+  // ── GIRONE: solo nostre partite ──
   if (gironeData.length) {
-    var gSec = document.createElement("div"); gSec.className = "rs-section";
-    var gLbl = document.createElement("div"); gLbl.className = "rs-section-label";
-    gLbl.textContent = "Fase a Gironi — Le nostre partite"; gSec.appendChild(gLbl);
-    var wrap = document.createElement("div"); wrap.className = "rs-risultati";
-    gironeData.filter(function(m){return (m.casa+m.ospite).toLowerCase().indexOf("scual")>=0;}).forEach(function(m) {
-      var card = document.createElement("div"); card.className = "rs-match"; card.style.borderColor="rgba(255,255,255,0.35)";
-      var hdr = document.createElement("div"); hdr.className = "rs-match-date";
-      hdr.textContent = m.giornata.replace("1a Fase — ","") + (m.data?"  —  "+m.data:""); card.appendChild(hdr);
-      var row = document.createElement("div"); row.className = "rs-match-teams";
+    var gs = document.createElement("div"); gs.className="rs-section";
+    var gl = document.createElement("div"); gl.className="rs-section-label"; gl.textContent="Fase a Gironi — Le nostre partite"; gs.appendChild(gl);
+    var gw = document.createElement("div"); gw.className="rs-risultati";
+    gironeData.filter(function(m){return (m.casa+m.ospite).toLowerCase().indexOf("scual")>=0;}).forEach(function(m){
+      var card=document.createElement("div"); card.className="rs-match"; card.style.borderColor="rgba(255,255,255,0.35)";
+      var hdr=document.createElement("div"); hdr.className="rs-match-date"; hdr.textContent=m.giornata.replace("1a Fase — ","")+( m.data?"  —  "+m.data:""); card.appendChild(hdr);
+      var row=document.createElement("div"); row.className="rs-match-teams";
       var c=document.createElement("div"); c.className="rs-team"+(m.casa.toLowerCase().indexOf("scual")>=0?" scualo":""); c.textContent=normalizeTeam(m.casa); row.appendChild(c);
       var s=document.createElement("div"); s.className="rs-score"; s.textContent=m.score||"-"; row.appendChild(s);
       var o=document.createElement("div"); o.className="rs-team right"+(m.ospite.toLowerCase().indexOf("scual")>=0?" scualo":""); o.textContent=normalizeTeam(m.ospite); row.appendChild(o);
-      card.appendChild(row); wrap.appendChild(card);
+      card.appendChild(row); gw.appendChild(card);
     });
-    gSec.appendChild(wrap);
-    container.appendChild(gSec);
+    gs.appendChild(gw); container.appendChild(gs);
   }
 
   if (!elimData.length) return;
 
   // ── BUILD SCONTRI ──
-  var scontri = {};
-  elimData.forEach(function(m) {
-    var fase = m.giornata.split(" — ")[0];
-    var key = fase + "||" + [m.casa,m.ospite].sort().join("|");
-    if (!scontri[key]) scontri[key] = {fase:fase, teamA:m.casa, teamB:m.ospite, andata:null, ritorno:null};
-    var s = scontri[key];
-    if (m.giornata.indexOf("Andata")>=0) { s.andata=m; s.teamA=m.casa; s.teamB=m.ospite; }
-    else if (m.giornata.indexOf("Ritorno")>=0) s.ritorno=m;
+  var scontri={};
+  elimData.forEach(function(m){
+    var fase=m.giornata.split(" — ")[0];
+    var key=fase+"||"+[m.casa,m.ospite].sort().join("|");
+    if(!scontri[key]) scontri[key]={fase:fase,teamA:m.casa,teamB:m.ospite,andata:null,ritorno:null};
+    var s=scontri[key];
+    if(m.giornata.indexOf("Andata")>=0){s.andata=m;s.teamA=m.casa;s.teamB=m.ospite;}
+    else if(m.giornata.indexOf("Ritorno")>=0) s.ritorno=m;
   });
 
-  function getAgg(s) {
-    var gA=0,gB=0;
-    if(s.andata&&s.andata.score){var p=s.andata.score.split("-");gA+=parseInt(p[0]);gB+=parseInt(p[1]);}
-    if(s.ritorno&&s.ritorno.score){var p=s.ritorno.score.split("-");gA+=parseInt(p[0]);gB+=parseInt(p[1]);}
-    return {gA:gA,gB:gB};
-  }
-  function getWinner(s) {
-    if(!s.andata&&!s.ritorno) return null;
-    var a=getAgg(s);
-    if(a.gA>a.gB) return s.teamA;
-    if(a.gB>a.gA) return s.teamB;
-    if(s.ritorno&&s.ritorno.score){var p=s.ritorno.score.split("-");if(parseInt(p[1])>parseInt(p[0]))return s.teamA;if(parseInt(p[0])>parseInt(p[1]))return s.teamB;}
-    return null;
-  }
+  function agg(s){var gA=0,gB=0;if(s.andata&&s.andata.score){var p=s.andata.score.split("-");gA+=parseInt(p[0]);gB+=parseInt(p[1]);}if(s.ritorno&&s.ritorno.score){var p=s.ritorno.score.split("-");gA+=parseInt(p[0]);gB+=parseInt(p[1]);}return{gA:gA,gB:gB};}
+  function winner(s){if(!s.andata&&!s.ritorno)return null;var a=agg(s);if(a.gA>a.gB)return s.teamA;if(a.gB>a.gA)return s.teamB;if(s.ritorno&&s.ritorno.score){var p=s.ritorno.score.split("-");if(parseInt(p[1])>parseInt(p[0]))return s.teamA;if(parseInt(p[0])>parseInt(p[1]))return s.teamB;}return null;}
 
-  var quarti=[], semis=[], finale=[];
+  var quarti=[],semis=[],finale_arr=[];
   Object.values(scontri).forEach(function(s){
     if(s.fase.indexOf("Quarti")>=0) quarti.push(s);
     else if(s.fase.indexOf("Semi")>=0) semis.push(s);
-    else finale.push(s);
+    else finale_arr.push(s);
   });
+  // Pad to 4 quarti, 2 semis, 1 finale
+  while(quarti.length<4) quarti.push(null);
+  while(semis.length<2) semis.push(null);
+  if(!finale_arr.length) finale_arr.push(null);
 
-  // ── BRACKET SECTION ──
-  var bSec = document.createElement("div"); bSec.className = "rs-section";
-  var bLbl = document.createElement("div"); bLbl.className = "rs-section-label";
-  bLbl.textContent = "Fase Eliminatoria"; bSec.appendChild(bLbl);
+  function makeMatch(s, cls) {
+    var w=s?winner(s):null, a=s?agg(s):null;
+    var hasScore=s&&(s.andata||s.ritorno)&&((s.andata&&s.andata.score)||(s.ritorno&&s.ritorno.score));
+    var isOurs=s&&(s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0);
+    var div=document.createElement("div");
+    div.className="bm"+(isOurs?" ours":"")+(cls?" "+cls:"");
 
-  var wrapper = document.createElement("div"); wrapper.className = "bracket-wrapper";
-  var bracket = document.createElement("div"); bracket.className = "bracket";
-
-  function makeMatchCard(s, extraClass) {
-    var agg = s ? getAgg(s) : null;
-    var winner = s ? getWinner(s) : null;
-    var isOurs = s && (s.teamA.toLowerCase().indexOf("scual")>=0 || s.teamB.toLowerCase().indexOf("scual")>=0);
-    var div = document.createElement("div");
-    div.className = "bracket-match" + (extraClass?" "+extraClass:"") + (isOurs?" our-match":"");
-
-    function makeTeamRow(name, score, isWin, isEmpty) {
-      var row = document.createElement("div");
-      row.className = "bracket-team" + (isEmpty?"":isWin?" winner":(winner&&!isWin?" loser":""));
-      var nm = document.createElement("div");
-      nm.className = "bracket-team-name" + (name&&name.toLowerCase().indexOf("scual")>=0?" scualo":"") + (isEmpty?" bracket-tbd":"");
-      nm.textContent = isEmpty ? "TBD" : normalizeTeam(name);
-      row.appendChild(nm);
-      var sc = document.createElement("div"); sc.className = "bracket-team-score";
-      sc.textContent = (isEmpty||score===undefined||score===null) ? "" : score;
-      row.appendChild(sc);
-      return row;
+    function row(name,score,isW){
+      var r=document.createElement("div");
+      r.className="bt"+(isW?" win":(w&&!isW?" lose":""));
+      var n=document.createElement("div");
+      var isSc=name&&name.toLowerCase().indexOf("scual")>=0;
+      n.className="bt-n"+(isSc?" sc":"");
+      n.textContent=name?normalizeTeam(name):"TBD";
+      r.appendChild(n);
+      var sc=document.createElement("div"); sc.className="bt-s";
+      sc.textContent=(hasScore&&score!==undefined)?score:"";
+      r.appendChild(sc);
+      return r;
     }
 
-    if (!s) {
-      div.appendChild(makeTeamRow("","",false,true));
-      div.appendChild(document.createElement("div").cloneNode()); // fake divider
-      div.appendChild(makeTeamRow("","",false,true));
-    } else {
-      var hasScore = (s.andata&&s.andata.score)||(s.ritorno&&s.ritorno.score);
-      div.appendChild(makeTeamRow(s.teamA, hasScore?agg.gA:null, winner===s.teamA, false));
-      var dv = document.createElement("div"); dv.className="bracket-divider"; div.appendChild(dv);
-      div.appendChild(makeTeamRow(s.teamB, hasScore?agg.gB:null, winner===s.teamB, false));
-      if(s.andata||s.ritorno){
-        var lbl=document.createElement("div"); lbl.className="bracket-match-label";
-        var parts=[];
-        if(s.andata) parts.push("A "+s.andata.score);
-        if(s.ritorno) parts.push("R "+s.ritorno.score);
-        lbl.textContent=parts.join("  ·  "); div.appendChild(lbl);
-      }
+    div.appendChild(row(s?s.teamA:null, hasScore?a.gA:null, w===( s&&s.teamA)));
+    var dv=document.createElement("div"); dv.className="bm-div"; div.appendChild(dv);
+    div.appendChild(row(s?s.teamB:null, hasScore?a.gB:null, w===(s&&s.teamB)));
+
+    if(s&&(s.andata||s.ritorno)){
+      var det=document.createElement("div"); det.className="bm-det";
+      var parts=[];
+      if(s.andata) parts.push("A "+s.andata.score);
+      if(s.ritorno) parts.push("R "+s.ritorno.score);
+      det.textContent=parts.join("  ·  "); div.appendChild(det);
     }
     return div;
   }
 
-  function makeConnector(n, direction) {
-    // n = number of connectors to draw
-    var height = n * 2;
+  // ── CONNECTOR using inline SVG ──
+  function makeSVGConn(n, dir) {
+    // n pairs, dir = "r" (left→right) or "l" (right→left)
+    var slotH = 80; // px per match slot
+    var totalH = n * 2 * slotH;
     var svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
-    svg.setAttribute("width","24"); svg.setAttribute("height","100%");
-    svg.style.cssText = "width:24px;flex-shrink:0;align-self:stretch";
-    svg.setAttribute("viewBox","0 0 24 " + (n*78));
-    svg.setAttribute("preserveAspectRatio","none");
-    svg.classList.add("conn-svg");
+    svg.setAttribute("width","20");
+    svg.setAttribute("height", String(totalH));
+    svg.style.cssText="display:block;flex-shrink:0;width:20px;height:"+totalH+"px";
+    var color="rgba(255,255,255,0.18)";
     for(var i=0;i<n;i++){
-      var y1=(i*2)*39+19, y2=(i*2+1)*39+19, ymid=(y1+y2)/2;
-      var c=document.createElementNS("http://www.w3.org/2000/svg","path");
-      if(direction==="right"){
-        c.setAttribute("d","M0 "+y1+" L12 "+y1+" L12 "+ymid+" M0 "+y2+" L12 "+y2+" L12 "+ymid+" M12 "+ymid+" L24 "+ymid);
+      var y1=i*2*slotH+slotH/2;
+      var y2=(i*2+1)*slotH+slotH/2;
+      var ym=(y1+y2)/2;
+      var p=document.createElementNS("http://www.w3.org/2000/svg","path");
+      if(dir==="r"){
+        p.setAttribute("d","M0,"+y1+" H10 V"+ym+" M0,"+y2+" H10 V"+ym+" M10,"+ym+" H20");
       } else {
-        c.setAttribute("d","M24 "+y1+" L12 "+y1+" L12 "+ymid+" M24 "+y2+" L12 "+y2+" L12 "+ymid+" M12 "+ymid+" L0 "+ymid);
+        p.setAttribute("d","M20,"+y1+" H10 V"+ym+" M20,"+y2+" H10 V"+ym+" M10,"+ym+" H0");
       }
-      c.setAttribute("stroke","rgba(255,255,255,0.15)"); c.setAttribute("stroke-width","1.5");
-      c.setAttribute("fill","none"); svg.appendChild(c);
+      p.setAttribute("stroke",color); p.setAttribute("stroke-width","1.5"); p.setAttribute("fill","none");
+      svg.appendChild(p);
     }
     return svg;
   }
 
-  // Col 1: Quarti (left side: match 0,1)
-  var col1 = document.createElement("div"); col1.className="bracket-col";
-  var col1lbl=document.createElement("div"); col1lbl.className="bracket-col-label"; col1lbl.textContent="Quarti"; col1.appendChild(col1lbl);
-  [quarti[0],quarti[1]].forEach(function(s){ col1.appendChild(makeMatchCard(s||null)); });
+  function makeSimpleConn(dir) {
+    var svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("width","20"); svg.setAttribute("height","80");
+    svg.style.cssText="display:block;flex-shrink:0;width:20px;height:80px";
+    var p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d","M0,40 H20"); p.setAttribute("stroke","rgba(255,255,255,0.18)");
+    p.setAttribute("stroke-width","1.5"); p.setAttribute("fill","none");
+    svg.appendChild(p); return svg;
+  }
 
-  // Connector Q->S left
-  var conn1 = makeConnector(2,"right");
+  // ── COLUMNS ──
+  function makeCol(label, matches, cls) {
+    var col=document.createElement("div"); col.className="bracket-col";
+    var lbl=document.createElement("div"); lbl.className="bracket-col-lbl"; lbl.textContent=label; col.appendChild(lbl);
+    matches.forEach(function(s){ col.appendChild(makeMatch(s,cls)); });
+    return col;
+  }
 
-  // Col 2: Semis (left: match 0)
-  var col2 = document.createElement("div"); col2.className="bracket-col";
-  var col2lbl=document.createElement("div"); col2lbl.className="bracket-col-label"; col2lbl.textContent="Semifinali"; col2.appendChild(col2lbl);
-  col2.appendChild(makeMatchCard(semis[0]||null));
+  var bSec=document.createElement("div"); bSec.className="rs-section";
+  var bLbl=document.createElement("div"); bLbl.className="rs-section-label"; bLbl.textContent="Fase Eliminatoria"; bSec.appendChild(bLbl);
+  var wrap=document.createElement("div"); wrap.className="bracket-wrap";
+  var flex=document.createElement("div"); flex.className="bracket-flex";
+  flex.style.alignItems="flex-start";
 
-  // Connector S->F left
-  var conn2 = makeConnector(1,"right");
-  conn2.style.height="60px"; conn2.setAttribute("viewBox","0 0 24 60");
-  // simple line
-  var lpath=document.createElementNS("http://www.w3.org/2000/svg","path");
-  lpath.setAttribute("d","M0 30 L24 30"); lpath.setAttribute("stroke","rgba(255,255,255,0.15)");
-  lpath.setAttribute("stroke-width","1.5"); lpath.setAttribute("fill","none");
-  conn2.innerHTML=""; conn2.appendChild(lpath);
+  // Left side: Q[0,1] → conn → S[0] → conn → Finale → conn → S[1] → conn → Q[2,3]
+  var colQ1=makeCol("Quarti",[quarti[0],quarti[1]]);
+  var connQ1=makeSVGConn(1,"r"); // 2 matches → 1 semi
+  var colS1=makeCol("Semifinali",[semis[0]]);
+  var connS1=makeSimpleConn("r");
+  var colF=makeCol("Finale",[finale_arr[0]]);
+  var connS2=makeSimpleConn("l");
+  var colS2=makeCol("Semifinali",[semis[1]]);
+  var connQ2=makeSVGConn(1,"l");
+  var colQ2=makeCol("Quarti",[quarti[2],quarti[3]]);
 
-  // Col 3: Finale
-  var col3 = document.createElement("div"); col3.className="bracket-col";
-  var col3lbl=document.createElement("div"); col3lbl.className="bracket-col-label"; col3lbl.textContent="Finale"; col3.appendChild(col3lbl);
-  col3.appendChild(makeMatchCard(finale[0]||null, "bracket-finale-match"));
+  // Vertical centering: semis should be centered relative to quarti
+  // Add top padding to semi columns to center them
+  colS1.style.paddingTop="47px"; // ~half of one match height
+  colS2.style.paddingTop="47px";
+  colF.style.paddingTop="94px";  // ~half of two match heights
 
-  // Connector F->S right
-  var conn3 = makeConnector(1,"left");
-  conn3.style.height="60px"; conn3.setAttribute("viewBox","0 0 24 60");
-  var lpath2=document.createElementNS("http://www.w3.org/2000/svg","path");
-  lpath2.setAttribute("d","M0 30 L24 30"); lpath2.setAttribute("stroke","rgba(255,255,255,0.15)");
-  lpath2.setAttribute("stroke-width","1.5"); lpath2.setAttribute("fill","none");
-  conn3.innerHTML=""; conn3.appendChild(lpath2);
-
-  // Col 4: Semis right
-  var col4 = document.createElement("div"); col4.className="bracket-col";
-  var col4lbl=document.createElement("div"); col4lbl.className="bracket-col-label"; col4lbl.textContent="Semifinali"; col4.appendChild(col4lbl);
-  col4.appendChild(makeMatchCard(semis[1]||null));
-
-  // Connector S->Q right
-  var conn4 = makeConnector(2,"left");
-
-  // Col 5: Quarti right
-  var col5 = document.createElement("div"); col5.className="bracket-col";
-  var col5lbl=document.createElement("div"); col5lbl.className="bracket-col-label"; col5lbl.textContent="Quarti"; col5.appendChild(col5lbl);
-  [quarti[2],quarti[3]].forEach(function(s){ col5.appendChild(makeMatchCard(s||null)); });
-
-  [col1,conn1,col2,conn2,col3,conn3,col4,conn4,col5].forEach(function(el){ bracket.appendChild(el); });
-
-  wrapper.appendChild(bracket);
-  bSec.appendChild(wrapper);
-  container.appendChild(bSec);
+  [colQ1,connQ1,colS1,connS1,colF,connS2,colS2,connQ2,colQ2].forEach(function(el){flex.appendChild(el);});
+  wrap.appendChild(flex); bSec.appendChild(wrap); container.appendChild(bSec);
 }
+
 
 
 function renderRisultatiCoppa(data) {
