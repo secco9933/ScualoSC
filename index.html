@@ -546,13 +546,13 @@ function loadRomagnaSport(tab) {
   if (isCoppa) tipo = (tab === "classifica") ? "coppa-classifica" : "coppa-calendario";
   else tipo = (tab === "classifica") ? "classifica" : "calendario";
 
-  // Cache
   if (tipo === "classifica" && cachedClassifica) { renderClassifica(cachedClassifica); return; }
   if (tipo === "calendario" && cachedCalendario) { renderRisultati(cachedCalendario); return; }
   if (tipo === "coppa-classifica" && cachedCoppaClassifica) { renderClassifica(cachedCoppaClassifica); return; }
   if (tipo === "coppa-calendario" && cachedCoppaCalendario) { renderTabelloneCoppa(cachedCoppaCalendario); return; }
 
-  var url = PROXY_URL + "?gir=" + RS_GIR + "&coppa=" + COPPA_ID + "&tipo=" + tipo + "&anno=2025&team=scual";
+  var url = PROXY_URL + "?gir=" + RS_GIR + "&coppa=" + COPPA_ID + "&tipo=" + tipo + "&anno=2025";
+
   function doFetch(attempt) {
     fetch(url)
       .then(function(r) { return r.json(); })
@@ -573,19 +573,7 @@ function loadRomagnaSport(tab) {
         showRsError(tab);
       });
   }
-  doFetch(0);)
-    .then(function(json) {
-      if (!json.ok || !json.data || !json.data.length) {
-        var e = document.createElement("div"); e.className = "rs-error";
-        e.textContent = json.error || "Nessun dato disponibile.";
-        container.innerHTML = ""; container.appendChild(e); return;
-      }
-      if (tipo === "classifica") { cachedClassifica = json.data; renderClassifica(json.data); }
-      else if (tipo === "calendario") { cachedCalendario = json.data; renderRisultati(json.data); }
-      else if (tipo === "coppa-classifica") { cachedCoppaClassifica = json.data; renderClassifica(json.data); }
-      else { cachedCoppaCalendario = json.data; renderTabelloneCoppa(json.data); }
-    })
-    .catch(function() { showRsError(tab); });
+  doFetch(0);
 }
 
 function normalizeTeam(name) {
