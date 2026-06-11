@@ -553,8 +553,27 @@ function loadRomagnaSport(tab) {
   if (tipo === "coppa-calendario" && cachedCoppaCalendario) { renderTabelloneCoppa(cachedCoppaCalendario); return; }
 
   var url = PROXY_URL + "?gir=" + RS_GIR + "&coppa=" + COPPA_ID + "&tipo=" + tipo + "&anno=2025&team=scual";
-  fetch(url)
-    .then(function(r) { return r.json(); })
+  function doFetch(attempt) {
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(json) {
+        if (!json.ok || !json.data || !json.data.length) {
+          if (attempt < 2) { setTimeout(function(){doFetch(attempt+1);}, 1500); return; }
+          var e = document.createElement("div"); e.className = "rs-error";
+          e.textContent = json.error || "Nessun dato disponibile.";
+          container.innerHTML = ""; container.appendChild(e); return;
+        }
+        if (tipo === "classifica") { cachedClassifica = json.data; renderClassifica(json.data); }
+        else if (tipo === "calendario") { cachedCalendario = json.data; renderRisultati(json.data); }
+        else if (tipo === "coppa-classifica") { cachedCoppaClassifica = json.data; renderClassifica(json.data); }
+        else { cachedCoppaCalendario = json.data; renderTabelloneCoppa(json.data); }
+      })
+      .catch(function() {
+        if (attempt < 2) { setTimeout(function(){doFetch(attempt+1);}, 1500); return; }
+        showRsError(tab);
+      });
+  }
+  doFetch(0);)
     .then(function(json) {
       if (!json.ok || !json.data || !json.data.length) {
         var e = document.createElement("div"); e.className = "rs-error";
