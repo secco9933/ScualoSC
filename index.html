@@ -579,174 +579,195 @@ function renderClassifica(data) {
 }
 
 
+
 function renderTabelloneCoppa(data) {
   var container = document.getElementById("rs-content");
   container.innerHTML = "";
 
-  // Separate: fase girone vs fasi eliminatorie
   var gironeData = data.filter(function(m) { return m.giornata.indexOf("1a Fase") >= 0; });
   var elimData = data.filter(function(m) { return m.giornata.indexOf("1a Fase") < 0; });
 
-  // If no eliminatory data, show just girone
-  if (!elimData.length) {
-    renderRisultatiCoppa(data); return;
-  }
-
-  // ── GIRONE (collapsible summary) ──
+  // ── GIRONE SUMMARY ──
   if (gironeData.length) {
     var gSec = document.createElement("div"); gSec.className = "rs-section";
     var gLbl = document.createElement("div"); gLbl.className = "rs-section-label";
-    gLbl.textContent = "Fase a Gironi"; gSec.appendChild(gLbl);
-
-    // Show only our team matches
-    var ourMatches = gironeData.filter(function(m) {
-      return (m.casa + m.ospite).toLowerCase().indexOf("scual") >= 0;
-    });
+    gLbl.textContent = "Fase a Gironi — Le nostre partite"; gSec.appendChild(gLbl);
     var wrap = document.createElement("div"); wrap.className = "rs-risultati";
-    ourMatches.forEach(function(m) {
-      var card = document.createElement("div"); card.className = "rs-match";
-      card.style.borderColor = "rgba(255,255,255,0.35)";
+    gironeData.filter(function(m){return (m.casa+m.ospite).toLowerCase().indexOf("scual")>=0;}).forEach(function(m) {
+      var card = document.createElement("div"); card.className = "rs-match"; card.style.borderColor="rgba(255,255,255,0.35)";
       var hdr = document.createElement("div"); hdr.className = "rs-match-date";
-      hdr.textContent = m.giornata.replace("1a Fase — ","") + (m.data ? "  —  " + m.data : "");
-      card.appendChild(hdr);
+      hdr.textContent = m.giornata.replace("1a Fase — ","") + (m.data?"  —  "+m.data:""); card.appendChild(hdr);
       var row = document.createElement("div"); row.className = "rs-match-teams";
-      var casa = document.createElement("div");
-      casa.className = "rs-team" + (m.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      casa.textContent = normalizeTeam(m.casa); row.appendChild(casa);
-      var sc = document.createElement("div"); sc.className = "rs-score"; sc.textContent = m.score || "-"; row.appendChild(sc);
-      var osp = document.createElement("div");
-      osp.className = "rs-team right" + (m.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      osp.textContent = normalizeTeam(m.ospite); row.appendChild(osp);
+      var c=document.createElement("div"); c.className="rs-team"+(m.casa.toLowerCase().indexOf("scual")>=0?" scualo":""); c.textContent=normalizeTeam(m.casa); row.appendChild(c);
+      var s=document.createElement("div"); s.className="rs-score"; s.textContent=m.score||"-"; row.appendChild(s);
+      var o=document.createElement("div"); o.className="rs-team right"+(m.ospite.toLowerCase().indexOf("scual")>=0?" scualo":""); o.textContent=normalizeTeam(m.ospite); row.appendChild(o);
       card.appendChild(row); wrap.appendChild(card);
     });
     gSec.appendChild(wrap);
     container.appendChild(gSec);
   }
 
-  // ── BUILD BRACKET ──
-  // Group eliminatory matches by "scontro" (pair of teams across andata+ritorno)
+  if (!elimData.length) return;
+
+  // ── BUILD SCONTRI ──
   var scontri = {};
   elimData.forEach(function(m) {
-    // Key: fase + sorted team names
     var fase = m.giornata.split(" — ")[0];
-    var teams = [m.casa, m.ospite].sort().join("|");
-    var key = fase + "||" + teams;
-    if (!scontri[key]) scontri[key] = { fase: fase, teamA: m.casa, teamB: m.ospite, andata: null, ritorno: null };
+    var key = fase + "||" + [m.casa,m.ospite].sort().join("|");
+    if (!scontri[key]) scontri[key] = {fase:fase, teamA:m.casa, teamB:m.ospite, andata:null, ritorno:null};
     var s = scontri[key];
-    if (m.giornata.indexOf("Andata") >= 0) s.andata = m;
-    else if (m.giornata.indexOf("Ritorno") >= 0) s.ritorno = m;
-    // Make sure teamA/B consistent
-    if (s.andata) { s.teamA = s.andata.casa; s.teamB = s.andata.ospite; }
+    if (m.giornata.indexOf("Andata")>=0) { s.andata=m; s.teamA=m.casa; s.teamB=m.ospite; }
+    else if (m.giornata.indexOf("Ritorno")>=0) s.ritorno=m;
   });
 
-  // Determine winner of each scontro
+  function getAgg(s) {
+    var gA=0,gB=0;
+    if(s.andata&&s.andata.score){var p=s.andata.score.split("-");gA+=parseInt(p[0]);gB+=parseInt(p[1]);}
+    if(s.ritorno&&s.ritorno.score){var p=s.ritorno.score.split("-");gA+=parseInt(p[0]);gB+=parseInt(p[1]);}
+    return {gA:gA,gB:gB};
+  }
   function getWinner(s) {
-    if (!s.andata && !s.ritorno) return null;
-    var gA = 0, gB = 0;
-    function addScore(m, isAndata) {
-      if (!m || !m.score) return;
-      var p = m.score.split("-");
-      var gc = parseInt(p[0]), go = parseInt(p[1]);
-      gA += gc; gB += go;
-    }
-    addScore(s.andata, true);
-    addScore(s.ritorno, false);
-    if (gA > gB) return s.teamA;
-    if (gB > gA) return s.teamB;
-    // Pareggio aggregato: guarda gol in trasferta (ritorno = ospite è teamA)
-    if (s.ritorno && s.ritorno.score) {
-      var p = s.ritorno.score.split("-");
-      var gAway_A = parseInt(p[1]); // teamA gioca in trasferta nel ritorno
-      var gAway_B = parseInt(p[0]); // teamB gioca in trasferta nel ritorno
-      if (gAway_A > gAway_B) return s.teamA;
-      if (gAway_B > gAway_A) return s.teamB;
-    }
-    return null; // ancora da decidere
+    if(!s.andata&&!s.ritorno) return null;
+    var a=getAgg(s);
+    if(a.gA>a.gB) return s.teamA;
+    if(a.gB>a.gA) return s.teamB;
+    if(s.ritorno&&s.ritorno.score){var p=s.ritorno.score.split("-");if(parseInt(p[1])>parseInt(p[0]))return s.teamA;if(parseInt(p[0])>parseInt(p[1]))return s.teamB;}
+    return null;
   }
 
-  // Order fasi
-  var faseOrder = ["Quarti di Finale", "Semifinali", "Finale"];
-  var scontriByFase = {};
-  Object.values(scontri).forEach(function(s) {
-    if (!scontriByFase[s.fase]) scontriByFase[s.fase] = [];
-    scontriByFase[s.fase].push(s);
+  var quarti=[], semis=[], finale=[];
+  Object.values(scontri).forEach(function(s){
+    if(s.fase.indexOf("Quarti")>=0) quarti.push(s);
+    else if(s.fase.indexOf("Semi")>=0) semis.push(s);
+    else finale.push(s);
   });
 
-  // ── TABELLONE ──
-  var bracketSec = document.createElement("div"); bracketSec.className = "rs-section";
+  // ── BRACKET SECTION ──
+  var bSec = document.createElement("div"); bSec.className = "rs-section";
   var bLbl = document.createElement("div"); bLbl.className = "rs-section-label";
-  bLbl.textContent = "Fase ad Eliminazione Diretta"; bracketSec.appendChild(bLbl);
+  bLbl.textContent = "Fase Eliminatoria"; bSec.appendChild(bLbl);
 
-  faseOrder.forEach(function(fase) {
-    var items = scontriByFase[fase];
-    if (!items || !items.length) return;
+  var wrapper = document.createElement("div"); wrapper.className = "bracket-wrapper";
+  var bracket = document.createElement("div"); bracket.className = "bracket";
 
-    var faseDiv = document.createElement("div"); faseDiv.className = "bracket-fase";
-    var faseLbl = document.createElement("div"); faseLbl.className = "bracket-fase-label";
-    faseLbl.textContent = fase; faseDiv.appendChild(faseLbl);
+  function makeMatchCard(s, extraClass) {
+    var agg = s ? getAgg(s) : null;
+    var winner = s ? getWinner(s) : null;
+    var isOurs = s && (s.teamA.toLowerCase().indexOf("scual")>=0 || s.teamB.toLowerCase().indexOf("scual")>=0);
+    var div = document.createElement("div");
+    div.className = "bracket-match" + (extraClass?" "+extraClass:"") + (isOurs?" our-match":"");
 
-    var grid = document.createElement("div"); grid.className = "bracket-grid";
+    function makeTeamRow(name, score, isWin, isEmpty) {
+      var row = document.createElement("div");
+      row.className = "bracket-team" + (isEmpty?"":isWin?" winner":(winner&&!isWin?" loser":""));
+      var nm = document.createElement("div");
+      nm.className = "bracket-team-name" + (name&&name.toLowerCase().indexOf("scual")>=0?" scualo":"") + (isEmpty?" bracket-tbd":"");
+      nm.textContent = isEmpty ? "TBD" : normalizeTeam(name);
+      row.appendChild(nm);
+      var sc = document.createElement("div"); sc.className = "bracket-team-score";
+      sc.textContent = (isEmpty||score===undefined||score===null) ? "" : score;
+      row.appendChild(sc);
+      return row;
+    }
 
-    items.forEach(function(s) {
-      var winner = getWinner(s);
-      var isScualoA = s.teamA.toLowerCase().indexOf("scual") >= 0;
-      var isScualoB = s.teamB.toLowerCase().indexOf("scual") >= 0;
-
-      // Aggregate score
-      var gA = 0, gB = 0;
-      if (s.andata && s.andata.score) { var p=s.andata.score.split("-"); gA+=parseInt(p[0]); gB+=parseInt(p[1]); }
-      if (s.ritorno && s.ritorno.score) { var p=s.ritorno.score.split("-"); gA+=parseInt(p[0]); gB+=parseInt(p[1]); }
-      var hasScore = s.andata || s.ritorno;
-
-      var card = document.createElement("div");
-      card.className = "bracket-card" + ((isScualoA || isScualoB) ? " bracket-our" : "");
-
-      // Team A row
-      var rowA = document.createElement("div");
-      rowA.className = "bracket-row" + (winner === s.teamA ? " bracket-winner" : (winner && winner !== s.teamA ? " bracket-loser" : ""));
-      var nameA = document.createElement("div"); nameA.className = "bracket-name" + (isScualoA ? " scualo" : "");
-      nameA.textContent = normalizeTeam(s.teamA); rowA.appendChild(nameA);
-      var scoreA = document.createElement("div"); scoreA.className = "bracket-score";
-      scoreA.textContent = hasScore ? gA : "-"; rowA.appendChild(scoreA);
-      card.appendChild(rowA);
-
-      // Divider
-      var div = document.createElement("div"); div.className = "bracket-divider"; card.appendChild(div);
-
-      // Team B row
-      var rowB = document.createElement("div");
-      rowB.className = "bracket-row" + (winner === s.teamB ? " bracket-winner" : (winner && winner !== s.teamB ? " bracket-loser" : ""));
-      var nameB = document.createElement("div"); nameB.className = "bracket-name" + (isScualoB ? " scualo" : "");
-      nameB.textContent = normalizeTeam(s.teamB); rowB.appendChild(nameB);
-      var scoreB = document.createElement("div"); scoreB.className = "bracket-score";
-      scoreB.textContent = hasScore ? gB : "-"; rowB.appendChild(scoreB);
-      card.appendChild(rowB);
-
-      // Andata/Ritorno detail
-      if (s.andata || s.ritorno) {
-        var detail = document.createElement("div"); detail.className = "bracket-detail";
-        if (s.andata) {
-          var sp = document.createElement("span");
-          sp.textContent = "A: " + normalizeTeam(s.andata.casa) + " " + (s.andata.score||"?") + " " + normalizeTeam(s.andata.ospite);
-          detail.appendChild(sp); detail.appendChild(document.createElement("br"));
-        }
-        if (s.ritorno) {
-          var sp2 = document.createElement("span");
-          sp2.textContent = "R: " + normalizeTeam(s.ritorno.casa) + " " + (s.ritorno.score||"?") + " " + normalizeTeam(s.ritorno.ospite);
-          detail.appendChild(sp2);
-        }
-        card.appendChild(detail);
+    if (!s) {
+      div.appendChild(makeTeamRow("","",false,true));
+      div.appendChild(document.createElement("div").cloneNode()); // fake divider
+      div.appendChild(makeTeamRow("","",false,true));
+    } else {
+      var hasScore = (s.andata&&s.andata.score)||(s.ritorno&&s.ritorno.score);
+      div.appendChild(makeTeamRow(s.teamA, hasScore?agg.gA:null, winner===s.teamA, false));
+      var dv = document.createElement("div"); dv.className="bracket-divider"; div.appendChild(dv);
+      div.appendChild(makeTeamRow(s.teamB, hasScore?agg.gB:null, winner===s.teamB, false));
+      if(s.andata||s.ritorno){
+        var lbl=document.createElement("div"); lbl.className="bracket-match-label";
+        var parts=[];
+        if(s.andata) parts.push("A "+s.andata.score);
+        if(s.ritorno) parts.push("R "+s.ritorno.score);
+        lbl.textContent=parts.join("  ·  "); div.appendChild(lbl);
       }
+    }
+    return div;
+  }
 
-      grid.appendChild(card);
-    });
+  function makeConnector(n, direction) {
+    // n = number of connectors to draw
+    var height = n * 2;
+    var svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("width","24"); svg.setAttribute("height","100%");
+    svg.style.cssText = "width:24px;flex-shrink:0;align-self:stretch";
+    svg.setAttribute("viewBox","0 0 24 " + (n*78));
+    svg.setAttribute("preserveAspectRatio","none");
+    svg.classList.add("conn-svg");
+    for(var i=0;i<n;i++){
+      var y1=(i*2)*39+19, y2=(i*2+1)*39+19, ymid=(y1+y2)/2;
+      var c=document.createElementNS("http://www.w3.org/2000/svg","path");
+      if(direction==="right"){
+        c.setAttribute("d","M0 "+y1+" L12 "+y1+" L12 "+ymid+" M0 "+y2+" L12 "+y2+" L12 "+ymid+" M12 "+ymid+" L24 "+ymid);
+      } else {
+        c.setAttribute("d","M24 "+y1+" L12 "+y1+" L12 "+ymid+" M24 "+y2+" L12 "+y2+" L12 "+ymid+" M12 "+ymid+" L0 "+ymid);
+      }
+      c.setAttribute("stroke","rgba(255,255,255,0.15)"); c.setAttribute("stroke-width","1.5");
+      c.setAttribute("fill","none"); svg.appendChild(c);
+    }
+    return svg;
+  }
 
-    faseDiv.appendChild(grid);
-    bracketSec.appendChild(faseDiv);
-  });
+  // Col 1: Quarti (left side: match 0,1)
+  var col1 = document.createElement("div"); col1.className="bracket-col";
+  var col1lbl=document.createElement("div"); col1lbl.className="bracket-col-label"; col1lbl.textContent="Quarti"; col1.appendChild(col1lbl);
+  [quarti[0],quarti[1]].forEach(function(s){ col1.appendChild(makeMatchCard(s||null)); });
 
-  container.appendChild(bracketSec);
+  // Connector Q->S left
+  var conn1 = makeConnector(2,"right");
+
+  // Col 2: Semis (left: match 0)
+  var col2 = document.createElement("div"); col2.className="bracket-col";
+  var col2lbl=document.createElement("div"); col2lbl.className="bracket-col-label"; col2lbl.textContent="Semifinali"; col2.appendChild(col2lbl);
+  col2.appendChild(makeMatchCard(semis[0]||null));
+
+  // Connector S->F left
+  var conn2 = makeConnector(1,"right");
+  conn2.style.height="60px"; conn2.setAttribute("viewBox","0 0 24 60");
+  // simple line
+  var lpath=document.createElementNS("http://www.w3.org/2000/svg","path");
+  lpath.setAttribute("d","M0 30 L24 30"); lpath.setAttribute("stroke","rgba(255,255,255,0.15)");
+  lpath.setAttribute("stroke-width","1.5"); lpath.setAttribute("fill","none");
+  conn2.innerHTML=""; conn2.appendChild(lpath);
+
+  // Col 3: Finale
+  var col3 = document.createElement("div"); col3.className="bracket-col";
+  var col3lbl=document.createElement("div"); col3lbl.className="bracket-col-label"; col3lbl.textContent="Finale"; col3.appendChild(col3lbl);
+  col3.appendChild(makeMatchCard(finale[0]||null, "bracket-finale-match"));
+
+  // Connector F->S right
+  var conn3 = makeConnector(1,"left");
+  conn3.style.height="60px"; conn3.setAttribute("viewBox","0 0 24 60");
+  var lpath2=document.createElementNS("http://www.w3.org/2000/svg","path");
+  lpath2.setAttribute("d","M0 30 L24 30"); lpath2.setAttribute("stroke","rgba(255,255,255,0.15)");
+  lpath2.setAttribute("stroke-width","1.5"); lpath2.setAttribute("fill","none");
+  conn3.innerHTML=""; conn3.appendChild(lpath2);
+
+  // Col 4: Semis right
+  var col4 = document.createElement("div"); col4.className="bracket-col";
+  var col4lbl=document.createElement("div"); col4lbl.className="bracket-col-label"; col4lbl.textContent="Semifinali"; col4.appendChild(col4lbl);
+  col4.appendChild(makeMatchCard(semis[1]||null));
+
+  // Connector S->Q right
+  var conn4 = makeConnector(2,"left");
+
+  // Col 5: Quarti right
+  var col5 = document.createElement("div"); col5.className="bracket-col";
+  var col5lbl=document.createElement("div"); col5lbl.className="bracket-col-label"; col5lbl.textContent="Quarti"; col5.appendChild(col5lbl);
+  [quarti[2],quarti[3]].forEach(function(s){ col5.appendChild(makeMatchCard(s||null)); });
+
+  [col1,conn1,col2,conn2,col3,conn3,col4,conn4,col5].forEach(function(el){ bracket.appendChild(el); });
+
+  wrapper.appendChild(bracket);
+  bSec.appendChild(wrapper);
+  container.appendChild(bSec);
 }
+
 
 function renderRisultatiCoppa(data) {
   var container = document.getElementById("rs-content");
