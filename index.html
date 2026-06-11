@@ -133,34 +133,29 @@ body{overflow:hidden}
 
 .bracket-fase{margin-bottom:22px}
 .bracket-fase-label{font-family:"Barlow Condensed",sans-serif;font-size:16px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--white);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.bracket-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
-.bracket-card{background:var(--black3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.bracket-card.bracket-our{border-color:rgba(255,255,255,0.35)}
-.bracket-row{display:flex;align-items:center;padding:9px 12px;gap:8px}
-.bracket-row.bracket-winner{background:rgba(255,255,255,0.1)}
-.bracket-row.bracket-loser{opacity:0.45}
-.bracket-name{font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;flex:1;line-height:1.1}
-.bracket-name.scualo{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px}
-.bracket-score{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;min-width:22px;text-align:right}
-.bracket-divider{height:1px;background:var(--border);margin:0 12px}
-.bracket-detail{font-size:10px;color:var(--grey2);padding:6px 12px;line-height:1.6;border-top:1px solid var(--border)}
 
-
-
-.bracket-wrap{overflow-x:auto;padding:8px 0 20px;-webkit-overflow-scrolling:touch}
-.bracket-flex{display:flex;flex-direction:row;align-items:stretch;gap:0;width:100%}
-.bracket-col{display:flex;flex-direction:column;flex-shrink:0;flex:1;min-width:0;max-width:160px}
-.bracket-col-lbl{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--grey2);text-align:center;padding:0 0 6px;flex-shrink:0}
-.bm{background:var(--black3);border:1px solid var(--grey3);border-radius:8px;overflow:hidden;margin:4px 2px;flex-shrink:0}
+.bracket-wrap{width:100%;padding:8px 0}
+.bracket{display:flex;align-items:stretch;width:100%;position:relative}
+.bracket-col{display:flex;flex-direction:column;flex:1;min-width:0}
+.bracket-col-lbl{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--grey1);text-align:center;padding-bottom:8px}
+.bracket-col-inner{display:flex;flex-direction:column;flex:1}
+.bracket-col-inner.center{justify-content:center}
+.bracket-col-inner.spread{justify-content:space-around}
+.bm{background:var(--black3);border:1px solid var(--grey3);border-radius:8px;overflow:hidden;margin:4px 3px}
 .bm.ours{border-color:rgba(255,255,255,0.4)}
 .bt{display:flex;align-items:center;padding:6px 8px;gap:4px;min-height:26px}
-.bt.win{background:rgba(255,255,255,0.1)}
+.bt.win{background:rgba(255,255,255,0.08)}
 .bt.lose{opacity:0.3}
-.bt-n{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;flex:1;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt-n{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--white)}
 .bt-n.sc{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:2px}
-.bt-s{font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:900;min-width:14px;text-align:right;color:var(--white);flex-shrink:0}
+.bt-n.tbd{color:var(--grey2);font-style:italic}
+.bt-s{font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:900;color:var(--white);flex-shrink:0;min-width:14px;text-align:right}
 .bm-div{height:1px;background:var(--border)}
 .bm-det{font-size:9px;color:var(--grey2);padding:3px 8px;border-top:1px solid var(--border);letter-spacing:0.3px}
+.bracket-conn{width:22px;flex-shrink:0;position:relative}
+.bracket-conn svg{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible}
+
+
 .bracket-conn{flex-shrink:0;width:20px;display:flex;flex-direction:column;position:relative}
 .bracket-conn-top{flex:1;border-right:1px solid rgba(255,255,255,0.2)}
 .bracket-conn-top.left{border-right:none;border-left:1px solid rgba(255,255,255,0.2)}
@@ -618,6 +613,7 @@ function renderClassifica(data) {
 
 
 
+
 function renderTabelloneCoppa(data) {
   var container = document.getElementById("rs-content");
   container.innerHTML = "";
@@ -625,7 +621,6 @@ function renderTabelloneCoppa(data) {
   var gironeData = data.filter(function(m){return m.giornata.indexOf("1a Fase")>=0;});
   var elimData   = data.filter(function(m){return m.giornata.indexOf("1a Fase")<0;});
 
-  // ── GIRONE: solo nostre partite ──
   if (gironeData.length) {
     var gs=document.createElement("div"); gs.className="rs-section";
     var gl=document.createElement("div"); gl.className="rs-section-label"; gl.textContent="Fase a Gironi — Le nostre partite"; gs.appendChild(gl);
@@ -644,223 +639,158 @@ function renderTabelloneCoppa(data) {
 
   if (!elimData.length) return;
 
-  // ── BUILD SCONTRI: group by sorted team pair PER FASE ──
   var scontriMap = {};
   elimData.forEach(function(m) {
     var fase = m.giornata.split(" — ")[0];
-    // Use sorted team names as key within same fase
     var teams = [m.casa, m.ospite].sort();
     var key = fase + "||" + teams.join("|");
-    if (!scontriMap[key]) {
-      scontriMap[key] = {fase:fase, teamA:null, teamB:null, andata:null, ritorno:null, order:Object.keys(scontriMap).length};
-    }
+    if (!scontriMap[key]) scontriMap[key] = {fase:fase, teamA:null, teamB:null, andata:null, ritorno:null, order:Object.keys(scontriMap).length};
     var s = scontriMap[key];
-    if (m.giornata.indexOf("Andata") >= 0) {
-      s.andata = m;
-      s.teamA = m.casa;
-      s.teamB = m.ospite;
-    } else if (m.giornata.indexOf("Ritorno") >= 0) {
-      s.ritorno = m;
-      if (!s.teamA) { s.teamA = m.ospite; s.teamB = m.casa; }
-    }
+    if (m.giornata.indexOf("Andata")>=0) { s.andata=m; s.teamA=m.casa; s.teamB=m.ospite; }
+    else if (m.giornata.indexOf("Ritorno")>=0) { s.ritorno=m; if(!s.teamA){s.teamA=m.ospite;s.teamB=m.casa;} }
+  });
+  Object.values(scontriMap).forEach(function(s){
+    if(s.andata){s.teamA=s.andata.casa;s.teamB=s.andata.ospite;}
+    else if(s.ritorno){s.teamA=s.ritorno.ospite;s.teamB=s.ritorno.casa;}
   });
 
-  // Fix teamA/B: always use andata home team as teamA
-  Object.values(scontriMap).forEach(function(s) {
-    if (s.andata) { s.teamA = s.andata.casa; s.teamB = s.andata.ospite; }
-    else if (s.ritorno) { s.teamA = s.ritorno.ospite; s.teamB = s.ritorno.casa; }
-  });
-
-  function agg(s) {
-    var gA = 0, gB = 0;
-    if (s.andata && s.andata.score) {
-      var p = s.andata.score.split("-");
-      gA += parseInt(p[0]) || 0;
-      gB += parseInt(p[1]) || 0;
-    }
-    if (s.ritorno && s.ritorno.score) {
-      var p = s.ritorno.score.split("-");
-      gA += parseInt(p[1]) || 0;
-      gB += parseInt(p[0]) || 0;
-    }
-    return {gA: gA, gB: gB};
+  function aggScore(s){
+    var gA=0,gB=0;
+    if(s.andata&&s.andata.score){var p=s.andata.score.split("-");gA+=parseInt(p[0])||0;gB+=parseInt(p[1])||0;}
+    if(s.ritorno&&s.ritorno.score){var p=s.ritorno.score.split("-");gA+=parseInt(p[1])||0;gB+=parseInt(p[0])||0;}
+    return {gA:gA,gB:gB};
   }
-
-  function calcWinner(s) {
-    if (!s || (!s.andata && !s.ritorno)) return null;
-    var gA = 0, gB = 0;
-    // teamA is home in andata: score[0] for A, score[1] for B
-    if (s.andata && s.andata.score) {
-      var p = s.andata.score.split("-");
-      gA += parseInt(p[0]) || 0;
-      gB += parseInt(p[1]) || 0;
-    }
-    // teamA is away in ritorno: score[1] for A, score[0] for B
-    if (s.ritorno && s.ritorno.score) {
-      var p = s.ritorno.score.split("-");
-      gA += parseInt(p[1]) || 0;
-      gB += parseInt(p[0]) || 0;
-    }
-    if (gA > gB) return s.teamA;
-    if (gB > gA) return s.teamB;
-    // Pareggio aggregato: gol in trasferta (away goals)
-    // teamA away goals = ritorno score[1], teamB away goals = andata score[1]
-    var awayA = 0, awayB = 0;
-    if (s.ritorno && s.ritorno.score) awayA = parseInt(s.ritorno.score.split("-")[1]) || 0;
-    if (s.andata && s.andata.score) awayB = parseInt(s.andata.score.split("-")[1]) || 0;
-    if (awayA > awayB) return s.teamA;
-    if (awayB > awayA) return s.teamB;
+  function calcWinner(s){
+    if(!s||(!s.andata&&!s.ritorno)) return null;
+    var a=aggScore(s);
+    if(a.gA>a.gB) return s.teamA;
+    if(a.gB>a.gA) return s.teamB;
+    if(s.ritorno&&s.ritorno.score){var p=s.ritorno.score.split("-");if(parseInt(p[1])>parseInt(p[0]))return s.teamA;if(parseInt(p[0])>parseInt(p[1]))return s.teamB;}
     return null;
   }
 
-  var quarti=[], semis=[], finaleArr=[];
-  var sorted = Object.values(scontriMap).sort(function(a,b){return a.order-b.order;});
+  var quarti=[],semis=[],finaleArr=[];
+  var sorted=Object.values(scontriMap).sort(function(a,b){return a.order-b.order;});
   sorted.forEach(function(s){
-    if (s.fase.indexOf("Quarti")>=0) quarti.push(s);
-    else if (s.fase.indexOf("Semi")>=0) semis.push(s);
+    if(s.fase.indexOf("Quarti")>=0) quarti.push(s);
+    else if(s.fase.indexOf("Semi")>=0) semis.push(s);
     else finaleArr.push(s);
   });
   while(quarti.length<4) quarti.push(null);
   while(semis.length<2) semis.push(null);
   if(!finaleArr.length) finaleArr.push(null);
 
-  // ── MAKE MATCH CARD ──
-  function makeMatch(s) {
-    if (!s) {
-      var div = document.createElement("div"); div.className = "bm";
-      var r1 = document.createElement("div"); r1.className = "bt";
-      var n1 = document.createElement("div"); n1.className = "bt-n"; n1.style.color="var(--grey2)"; n1.textContent = "TBD"; r1.appendChild(n1); div.appendChild(r1);
-      var dv = document.createElement("div"); dv.className = "bm-div"; div.appendChild(dv);
-      var r2 = document.createElement("div"); r2.className = "bt";
-      var n2 = document.createElement("div"); n2.className = "bt-n"; n2.style.color="var(--grey2)"; n2.textContent = "TBD"; r2.appendChild(n2); div.appendChild(r2);
+  function makeMatchEl(s) {
+    var div=document.createElement("div");
+    if(!s){
+      div.className="bm";
+      var r1=document.createElement("div"); r1.className="bt"; var n1=document.createElement("div"); n1.className="bt-n tbd"; n1.textContent="TBD"; r1.appendChild(n1); div.appendChild(r1);
+      var dv=document.createElement("div"); dv.className="bm-div"; div.appendChild(dv);
+      var r2=document.createElement("div"); r2.className="bt"; var n2=document.createElement("div"); n2.className="bt-n tbd"; n2.textContent="TBD"; r2.appendChild(n2); div.appendChild(r2);
       return div;
     }
-    var w = calcWinner(s);
-    var a = agg(s);
-    var hasScore = (s.andata&&s.andata.score)||(s.ritorno&&s.ritorno.score);
-    var isOurs = s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0;
-    var div = document.createElement("div");
-    div.className = "bm" + (isOurs?" ours":"");
-
-    function makeRow(name, score, isWin) {
-      var r = document.createElement("div");
-      r.className = "bt" + (w===null?"":isWin?" win":" lose");
-      var n = document.createElement("div");
-      var isSc = name && name.toLowerCase().indexOf("scual")>=0;
-      n.className = "bt-n" + (isSc?" sc":"");
-      n.textContent = name ? normalizeTeam(name) : "TBD";
-      if (!name) n.style.color = "var(--grey2)";
-      r.appendChild(n);
-      var sc = document.createElement("div"); sc.className = "bt-s";
-      sc.textContent = (hasScore && score !== undefined && score !== null) ? score : "";
-      r.appendChild(sc);
+    var w=calcWinner(s), a=aggScore(s);
+    var hasScore=(s.andata&&s.andata.score)||(s.ritorno&&s.ritorno.score);
+    var isOurs=s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0;
+    div.className="bm"+(isOurs?" ours":"");
+    function mkRow(name,score,isWin){
+      var r=document.createElement("div"); r.className="bt"+(w===null?"":isWin?" win":" lose");
+      var n=document.createElement("div"); n.className="bt-n"+(name&&name.toLowerCase().indexOf("scual")>=0?" sc":""); n.textContent=name?normalizeTeam(name):"TBD"; r.appendChild(n);
+      var sc=document.createElement("div"); sc.className="bt-s"; sc.textContent=(hasScore&&score!==null&&score!==undefined)?score:""; r.appendChild(sc);
       return r;
     }
-
-    div.appendChild(makeRow(s?s.teamA:null, hasScore?a.gA:null, w===s.teamA));
-    var dv = document.createElement("div"); dv.className="bm-div"; div.appendChild(dv);
-    div.appendChild(makeRow(s?s.teamB:null, hasScore?a.gB:null, w===s.teamB));
-
-    if (s && (s.andata||s.ritorno)) {
-      var det = document.createElement("div"); det.className="bm-det";
+    div.appendChild(mkRow(s.teamA,hasScore?a.gA:null,w===s.teamA));
+    var dv=document.createElement("div"); dv.className="bm-div"; div.appendChild(dv);
+    div.appendChild(mkRow(s.teamB,hasScore?a.gB:null,w===s.teamB));
+    if(s.andata||s.ritorno){
+      var det=document.createElement("div"); det.className="bm-det";
       var parts=[];
       if(s.andata&&s.andata.score) parts.push("A "+s.andata.score);
       if(s.ritorno&&s.ritorno.score) parts.push("R "+s.ritorno.score);
-      det.textContent = parts.join("  ·  ");
-      div.appendChild(det);
+      det.textContent=parts.join("  ·  "); div.appendChild(det);
     }
     return div;
   }
 
-  // ── CONNECTOR SVG ──
-  function makeConn2to1(dir) {
-    // Wraps around 2 match cards and draws connecting lines
-    // This is a spacer div with border styling
-    var h = "calc(50% - 4px)"; // half height minus half of middle line
-    var wrapper = document.createElement("div");
-    wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;flex-direction:column;align-self:stretch";
-
-    var top = document.createElement("div");
-    top.style.flex = "1";
-    if (dir==="r") { top.style.borderRight = "1.5px solid rgba(255,255,255,0.22)"; top.style.borderBottom = "1.5px solid rgba(255,255,255,0.22)"; }
-    else            { top.style.borderLeft  = "1.5px solid rgba(255,255,255,0.22)"; top.style.borderBottom = "1.5px solid rgba(255,255,255,0.22)"; }
-
-    var bot = document.createElement("div");
-    bot.style.flex = "1";
-    if (dir==="r") { bot.style.borderRight = "1.5px solid rgba(255,255,255,0.22)"; bot.style.borderTop = "1.5px solid rgba(255,255,255,0.22)"; }
-    else            { bot.style.borderLeft  = "1.5px solid rgba(255,255,255,0.22)"; bot.style.borderTop = "1.5px solid rgba(255,255,255,0.22)"; }
-
-    wrapper.appendChild(top);
-    wrapper.appendChild(bot);
-    return wrapper;
-  }
-
-  function makeConn1to1(dir) {
-    var wrapper = document.createElement("div");
-    wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;align-items:center;align-self:stretch";
-    var line = document.createElement("div");
-    line.style.cssText = "height:1.5px;background:rgba(255,255,255,0.22);width:100%";
-    wrapper.appendChild(line);
-    return wrapper;
-  }
-
-  // ── COLUMNS ──
-  function makeCol(label, items, paddingTop) {
-    var col = document.createElement("div"); col.className="bracket-col";
-    if (paddingTop) col.style.paddingTop = paddingTop;
-    var lbl = document.createElement("div"); lbl.className="bracket-col-lbl"; lbl.textContent=label; col.appendChild(lbl);
-    items.forEach(function(s){ col.appendChild(makeMatch(s)); });
-    return col;
-  }
-
-  // ── RENDER ──
-  var bSec = document.createElement("div"); bSec.className="rs-section";
-  var bLbl = document.createElement("div"); bLbl.className="rs-section-label"; bLbl.textContent="Fase Eliminatoria"; bSec.appendChild(bLbl);
-  var wrap = document.createElement("div"); wrap.className="bracket-wrap";
-  var flex = document.createElement("div"); flex.className="bracket-flex";
-
-  // Sinistra: Scualo vs Fratte (idx 1), Vis Servi vs O.Crocetta (idx 2)
-  // Destra:   Real SV vs Santa Aq (idx 0), Verucchiese vs Toro Siderale (idx 3)
-  var leftQ  = [quarti[1], quarti[2]];
-  var rightQ = [quarti[0], quarti[3]];
-  var leftS  = semis.filter(function(s){ return s && (s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0); });
-  var rightS = semis.filter(function(s){ return !s || !(s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0); });
-  if (!leftS.length) leftS = [semis[0]];
-  if (!rightS.length) rightS = [semis[1]];
-
-  // Wrap quarti pairs in containers to enable proper centering
-  function makeQuartiCol(label, matches) {
-    var col = document.createElement("div");
-    col.className = "bracket-col";
-    var lbl = document.createElement("div"); lbl.className="bracket-col-lbl"; lbl.textContent=label; col.appendChild(lbl);
-    var inner = document.createElement("div");
-    inner.style.cssText = "display:flex;flex-direction:column;gap:0;flex:1";
-    matches.forEach(function(s){ inner.appendChild(makeMatch(s)); });
+  function makeCol(label, items, spread) {
+    var col=document.createElement("div"); col.className="bracket-col";
+    var lbl=document.createElement("div"); lbl.className="bracket-col-lbl"; lbl.textContent=label; col.appendChild(lbl);
+    var inner=document.createElement("div"); inner.className="bracket-col-inner"+(spread?" spread":" center");
+    items.forEach(function(s){ inner.appendChild(makeMatchEl(s)); });
     col.appendChild(inner);
     return col;
   }
 
-  function makeMidCol(label, matches) {
-    var col = document.createElement("div");
-    col.className = "bracket-col";
-    var lbl = document.createElement("div"); lbl.className="bracket-col-lbl"; lbl.textContent=label; col.appendChild(lbl);
-    var inner = document.createElement("div");
-    inner.style.cssText = "display:flex;flex-direction:column;justify-content:center;flex:1";
-    matches.forEach(function(s){ inner.appendChild(makeMatch(s)); });
-    col.appendChild(inner);
-    return col;
+  function makeConn() {
+    var d=document.createElement("div"); d.className="bracket-conn"; return d;
   }
 
-  var colQ1 = makeQuartiCol("Quarti",    leftQ);
-  var cn1   = makeConn2to1("r");
-  var colS1 = makeMidCol("Semifinali",   [leftS[0]||null]);
-  var cn2   = makeConn1to1("r");
-  var colF  = makeMidCol("Finale",       [finaleArr[0]]);
-  var cn3   = makeConn1to1("l");
-  var colS2 = makeMidCol("Semifinali",   [rightS[0]||null]);
-  var cn4   = makeConn2to1("l");
-  var colQ2 = makeQuartiCol("Quarti",    rightQ);});
-  wrap.appendChild(flex); bSec.appendChild(wrap); container.appendChild(bSec);
+  function drawConn(connEl, fromEls, toEl, dir) {
+    var cR=connEl.getBoundingClientRect();
+    if(cR.height===0) return;
+    var fromMids=fromEls.map(function(el){var r=el.getBoundingClientRect();return r.top+r.height/2-cR.top;});
+    var toR=toEl.getBoundingClientRect();
+    var toMid=toR.top+toR.height/2-cR.top;
+    var w=cR.width;
+    var color="rgba(255,255,255,0.2)";
+    var paths="";
+    fromMids.forEach(function(fm){
+      if(dir==="r"){
+        paths+='<path d="M0,'+fm+' H'+w/2+' V'+toMid+' H'+w+'" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linejoin="round"/>';
+      } else {
+        paths+='<path d="M'+w+','+fm+' H'+w/2+' V'+toMid+' H0" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linejoin="round"/>';
+      }
+    });
+    var ns="http://www.w3.org/2000/svg";
+    var svg=document.createElementNS(ns,"svg");
+    svg.setAttribute("viewBox","0 0 "+w+" "+cR.height);
+    svg.setAttribute("preserveAspectRatio","none");
+    svg.style.cssText="position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible";
+    svg.innerHTML=paths;
+    connEl.innerHTML=""; connEl.appendChild(svg);
+  }
+
+  var leftQ=[quarti[1],quarti[2]];
+  var rightQ=[quarti[0],quarti[3]];
+  var leftS=semis.filter(function(s){return s&&(s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0);});
+  var rightS=semis.filter(function(s){return !s||!(s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0);});
+  if(!leftS.length) leftS=[semis[0]];
+  if(!rightS.length) rightS=[semis[1]];
+
+  var bSec=document.createElement("div"); bSec.className="rs-section";
+  var bLbl=document.createElement("div"); bLbl.className="rs-section-label"; bLbl.textContent="Fase Eliminatoria"; bSec.appendChild(bLbl);
+  var wrap=document.createElement("div"); wrap.className="bracket-wrap";
+  var bracket=document.createElement("div"); bracket.className="bracket";
+
+  var colQ1=makeCol("Quarti",leftQ,true);
+  var cnQ1=makeConn();
+  var colS1=makeCol("Semifinali",[leftS[0]||null],false);
+  var cnS1=makeConn();
+  var colF=makeCol("Finale",[finaleArr[0]],false);
+  var cnS2=makeConn();
+  var colS2=makeCol("Semifinali",[rightS[0]||null],false);
+  var cnQ2=makeConn();
+  var colQ2=makeCol("Quarti",rightQ,true);
+
+  [colQ1,cnQ1,colS1,cnS1,colF,cnS2,colS2,cnQ2,colQ2].forEach(function(el){bracket.appendChild(el);});
+  wrap.appendChild(bracket); bSec.appendChild(wrap); container.appendChild(bSec);
+
+  function redraw() {
+    var qL=colQ1.querySelectorAll(".bm");
+    var qR=colQ2.querySelectorAll(".bm");
+    var sL=colS1.querySelector(".bm");
+    var sR=colS2.querySelector(".bm");
+    var f=colF.querySelector(".bm");
+    if(!qL.length||!sL||!f) return;
+    drawConn(cnQ1,[qL[0],qL[1]],sL,"r");
+    drawConn(cnS1,[sL],f,"r");
+    drawConn(cnS2,[sR],f,"l");
+    drawConn(cnQ2,[qR[0],qR[1]],sR,"l");
+  }
+
+  setTimeout(redraw, 50);
+  setTimeout(redraw, 200);
+  window.addEventListener("resize", redraw);
 }
 
 
@@ -869,102 +799,29 @@ function renderTabelloneCoppa(data) {
 function renderRisultatiCoppa(data) {
   var container = document.getElementById("rs-content");
   container.innerHTML = "";
-
-  // Group by fase (giornata field) preserving page order
   var groups = [];
   var lastFase = null;
   data.forEach(function(m) {
     var fase = m.giornata || "Partite";
-    if (fase !== lastFase) {
-      groups.push({ fase: fase, items: [] });
-      lastFase = fase;
-    }
-    groups[groups.length - 1].items.push(m);
+    if (fase !== lastFase) { groups.push({fase:fase,items:[]}); lastFase=fase; }
+    groups[groups.length-1].items.push(m);
   });
-
   groups.forEach(function(grp) {
-    var sec = document.createElement("div"); sec.className = "rs-section";
-    var lbl = document.createElement("div"); lbl.className = "rs-section-label";
-    lbl.textContent = grp.fase; sec.appendChild(lbl);
-    var wrap = document.createElement("div"); wrap.className = "rs-risultati";
-    grp.items.forEach(function(m) {
-      var card = document.createElement("div"); card.className = "rs-match";
-      if ((m.casa + m.ospite).toLowerCase().indexOf("scual") >= 0) card.style.borderColor = "rgba(255,255,255,0.35)";
-      if (m.data) {
-        var hdr = document.createElement("div"); hdr.className = "rs-match-date";
-        hdr.textContent = m.data; card.appendChild(hdr);
-      }
-      var row = document.createElement("div"); row.className = "rs-match-teams";
-      var casa = document.createElement("div");
-      casa.className = "rs-team" + (m.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      casa.textContent = normalizeTeam(m.casa); row.appendChild(casa);
-      var mid = document.createElement("div"); mid.className = "rs-score";
-      if (m.score) { mid.textContent = m.score; }
-      else {
-        mid.textContent = m.data || "-";
-        mid.style.fontSize = "12px"; mid.style.color = "var(--grey1)";
-        mid.style.fontFamily = "Barlow,sans-serif"; mid.style.fontWeight = "500";
-      }
-      row.appendChild(mid);
-      var ospite = document.createElement("div");
-      ospite.className = "rs-team right" + (m.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      ospite.textContent = normalizeTeam(m.ospite); row.appendChild(ospite);
-      card.appendChild(row); wrap.appendChild(card);
+    var sec=document.createElement("div"); sec.className="rs-section";
+    var lbl=document.createElement("div"); lbl.className="rs-section-label"; lbl.textContent=grp.fase; sec.appendChild(lbl);
+    var wrap=document.createElement("div"); wrap.className="rs-risultati";
+    grp.items.forEach(function(m){
+      var card=document.createElement("div"); card.className="rs-match";
+      if((m.casa+m.ospite).toLowerCase().indexOf("scual")>=0) card.style.borderColor="rgba(255,255,255,0.35)";
+      if(m.data){var hdr=document.createElement("div");hdr.className="rs-match-date";hdr.textContent=m.data;card.appendChild(hdr);}
+      var row=document.createElement("div"); row.className="rs-match-teams";
+      var c=document.createElement("div");c.className="rs-team"+(m.casa.toLowerCase().indexOf("scual")>=0?" scualo":"");c.textContent=normalizeTeam(m.casa);row.appendChild(c);
+      var s=document.createElement("div");s.className="rs-score";s.textContent=m.score||"-";row.appendChild(s);
+      var o=document.createElement("div");o.className="rs-team right"+(m.ospite.toLowerCase().indexOf("scual")>=0?" scualo":"");o.textContent=normalizeTeam(m.ospite);row.appendChild(o);
+      card.appendChild(row);wrap.appendChild(card);
     });
-    sec.appendChild(wrap); container.appendChild(sec);
+    sec.appendChild(wrap);container.appendChild(sec);
   });
-
-  if (!groups.length) {
-    var e = document.createElement("div"); e.className = "rs-error";
-    e.textContent = "Nessuna partita disponibile."; container.appendChild(e);
-  }
-}
-
-function renderRisultati(data) {
-  var container = document.getElementById("rs-content");
-  container.innerHTML = "";
-  data = data.slice();
-  data.sort(function(a, b) { return giornataNum(a) - giornataNum(b); });
-  var lastPlayed = 0;
-  data.forEach(function(m) { if (m.score) { var n = giornataNum(m); if (n > lastPlayed) lastPlayed = n; } });
-
-  var risultati = [], recuperi = [], prossimi = [];
-  data.forEach(function(m) {
-    var n = giornataNum(m);
-    if (m.score) risultati.push(m);
-    else if (n <= lastPlayed) recuperi.push(m);
-    else prossimi.push(m);
-  });
-
-  function makeSection(title, items, showScore) {
-    if (!items.length) return;
-    var sec = document.createElement("div"); sec.className = "rs-section";
-    var lbl = document.createElement("div"); lbl.className = "rs-section-label"; lbl.textContent = title; sec.appendChild(lbl);
-    var wrap = document.createElement("div"); wrap.className = "rs-risultati";
-    items.forEach(function(m) {
-      var card = document.createElement("div"); card.className = "rs-match";
-      if ((m.casa + m.ospite).toLowerCase().indexOf("scual") >= 0) card.style.borderColor = "rgba(255,255,255,0.35)";
-      var hdr = document.createElement("div"); hdr.className = "rs-match-date";
-      hdr.textContent = m.giornata + (m.data ? "  —  " + m.data : ""); card.appendChild(hdr);
-      var row = document.createElement("div"); row.className = "rs-match-teams";
-      var casa = document.createElement("div");
-      casa.className = "rs-team" + (m.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      casa.textContent = normalizeTeam(m.casa); row.appendChild(casa);
-      var mid = document.createElement("div"); mid.className = "rs-score";
-      if (showScore && m.score) { mid.textContent = m.score; }
-      else { mid.textContent = m.data || "-"; mid.style.fontSize = "13px"; mid.style.color = "var(--grey1)"; mid.style.fontFamily = "Barlow,sans-serif"; mid.style.fontWeight = "500"; }
-      row.appendChild(mid);
-      var ospite = document.createElement("div");
-      ospite.className = "rs-team right" + (m.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      ospite.textContent = normalizeTeam(m.ospite); row.appendChild(ospite);
-      card.appendChild(row); wrap.appendChild(card);
-    });
-    sec.appendChild(wrap); container.appendChild(sec);
-  }
-
-  makeSection("Risultati", risultati, true);
-  makeSection("Prossimi incontri", prossimi, false);
-  makeSection("Recuperi", recuperi, false);
 }
 
 // Init
