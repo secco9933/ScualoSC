@@ -774,25 +774,23 @@ function renderTabelloneCoppa(data) {
 
   // ── CONNECTOR SVG ──
   function makeConn2to1(dir) {
-    // Creates a connector: 2 items connect to 1 via CSS borders
+    // Wraps around 2 match cards and draws connecting lines
+    // This is a spacer div with border styling
+    var h = "calc(50% - 4px)"; // half height minus half of middle line
     var wrapper = document.createElement("div");
     wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;flex-direction:column;align-self:stretch";
-    
+
     var top = document.createElement("div");
-    top.style.cssText = "flex:1;border-bottom:1px solid rgba(255,255,255,0.22);";
-    top.style.borderRight = dir==="r" ? "1px solid rgba(255,255,255,0.22)" : "none";
-    top.style.borderLeft  = dir==="l" ? "1px solid rgba(255,255,255,0.22)" : "none";
-    
-    var mid = document.createElement("div");
-    mid.style.cssText = "height:1px;background:rgba(255,255,255,0.22)";
-    
+    top.style.flex = "1";
+    if (dir==="r") { top.style.borderRight = "1.5px solid rgba(255,255,255,0.22)"; top.style.borderBottom = "1.5px solid rgba(255,255,255,0.22)"; }
+    else            { top.style.borderLeft  = "1.5px solid rgba(255,255,255,0.22)"; top.style.borderBottom = "1.5px solid rgba(255,255,255,0.22)"; }
+
     var bot = document.createElement("div");
-    bot.style.cssText = "flex:1;border-top:1px solid rgba(255,255,255,0.22);";
-    bot.style.borderRight = dir==="r" ? "1px solid rgba(255,255,255,0.22)" : "none";
-    bot.style.borderLeft  = dir==="l" ? "1px solid rgba(255,255,255,0.22)" : "none";
-    
+    bot.style.flex = "1";
+    if (dir==="r") { bot.style.borderRight = "1.5px solid rgba(255,255,255,0.22)"; bot.style.borderTop = "1.5px solid rgba(255,255,255,0.22)"; }
+    else            { bot.style.borderLeft  = "1.5px solid rgba(255,255,255,0.22)"; bot.style.borderTop = "1.5px solid rgba(255,255,255,0.22)"; }
+
     wrapper.appendChild(top);
-    wrapper.appendChild(mid);
     wrapper.appendChild(bot);
     return wrapper;
   }
@@ -801,7 +799,7 @@ function renderTabelloneCoppa(data) {
     var wrapper = document.createElement("div");
     wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;align-items:center;align-self:stretch";
     var line = document.createElement("div");
-    line.style.cssText = "height:1px;background:rgba(255,255,255,0.22);width:100%";
+    line.style.cssText = "height:1.5px;background:rgba(255,255,255,0.22);width:100%";
     wrapper.appendChild(line);
     return wrapper;
   }
@@ -830,17 +828,38 @@ function renderTabelloneCoppa(data) {
   if (!leftS.length) leftS = [semis[0]];
   if (!rightS.length) rightS = [semis[1]];
 
-  var colQ1 = makeCol("Quarti",    leftQ,           null);
-  var cn1   = makeConn2to1("r");
-  var colS1 = makeCol("Semifinali",[leftS[0]||null],  null);
-  var cn2   = makeConn1to1("r");
-  var colF  = makeCol("Finale",    [finaleArr[0]],    null);
-  var cn3   = makeConn1to1("l");
-  var colS2 = makeCol("Semifinali",[rightS[0]||null], null);
-  var cn4   = makeConn2to1("l");
-  var colQ2 = makeCol("Quarti",    rightQ,            null);
+  // Wrap quarti pairs in containers to enable proper centering
+  function makeQuartiCol(label, matches) {
+    var col = document.createElement("div");
+    col.className = "bracket-col";
+    var lbl = document.createElement("div"); lbl.className="bracket-col-lbl"; lbl.textContent=label; col.appendChild(lbl);
+    var inner = document.createElement("div");
+    inner.style.cssText = "display:flex;flex-direction:column;gap:0;flex:1";
+    matches.forEach(function(s){ inner.appendChild(makeMatch(s)); });
+    col.appendChild(inner);
+    return col;
+  }
 
-  [colQ1,cn1,colS1,cn2,colF,cn3,colS2,cn4,colQ2].forEach(function(el){flex.appendChild(el);});
+  function makeMidCol(label, matches) {
+    var col = document.createElement("div");
+    col.className = "bracket-col";
+    var lbl = document.createElement("div"); lbl.className="bracket-col-lbl"; lbl.textContent=label; col.appendChild(lbl);
+    var inner = document.createElement("div");
+    inner.style.cssText = "display:flex;flex-direction:column;justify-content:center;flex:1";
+    matches.forEach(function(s){ inner.appendChild(makeMatch(s)); });
+    col.appendChild(inner);
+    return col;
+  }
+
+  var colQ1 = makeQuartiCol("Quarti",    leftQ);
+  var cn1   = makeConn2to1("r");
+  var colS1 = makeMidCol("Semifinali",   [leftS[0]||null]);
+  var cn2   = makeConn1to1("r");
+  var colF  = makeMidCol("Finale",       [finaleArr[0]]);
+  var cn3   = makeConn1to1("l");
+  var colS2 = makeMidCol("Semifinali",   [rightS[0]||null]);
+  var cn4   = makeConn2to1("l");
+  var colQ2 = makeQuartiCol("Quarti",    rightQ);});
   wrap.appendChild(flex); bSec.appendChild(wrap); container.appendChild(bSec);
 }
 
