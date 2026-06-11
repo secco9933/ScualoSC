@@ -699,10 +699,19 @@ function renderTabelloneCoppa(data) {
 
   // ── MAKE MATCH CARD ──
   function makeMatch(s) {
+    if (!s) {
+      var div = document.createElement("div"); div.className = "bm";
+      var r1 = document.createElement("div"); r1.className = "bt";
+      var n1 = document.createElement("div"); n1.className = "bt-n"; n1.style.color="var(--grey2)"; n1.textContent = "TBD"; r1.appendChild(n1); div.appendChild(r1);
+      var dv = document.createElement("div"); dv.className = "bm-div"; div.appendChild(dv);
+      var r2 = document.createElement("div"); r2.className = "bt";
+      var n2 = document.createElement("div"); n2.className = "bt-n"; n2.style.color="var(--grey2)"; n2.textContent = "TBD"; r2.appendChild(n2); div.appendChild(r2);
+      return div;
+    }
     var w = calcWinner(s);
-    var a = s ? agg(s) : null;
-    var hasScore = s && ((s.andata&&s.andata.score)||(s.ritorno&&s.ritorno.score));
-    var isOurs = s && (s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0);
+    var a = agg(s);
+    var hasScore = (s.andata&&s.andata.score)||(s.ritorno&&s.ritorno.score);
+    var isOurs = s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0;
     var div = document.createElement("div");
     div.className = "bm" + (isOurs?" ours":"");
 
