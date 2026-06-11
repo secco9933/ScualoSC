@@ -130,6 +130,20 @@ body{overflow:hidden}
   .hero-name{font-size:58px}
   .hero-watermark{font-size:300px}
 }
+
+.bracket-fase{margin-bottom:22px}
+.bracket-fase-label{font-family:"Barlow Condensed",sans-serif;font-size:16px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--white);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.bracket-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.bracket-card{background:var(--black3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.bracket-card.bracket-our{border-color:rgba(255,255,255,0.35)}
+.bracket-row{display:flex;align-items:center;padding:9px 12px;gap:8px}
+.bracket-row.bracket-winner{background:rgba(255,255,255,0.1)}
+.bracket-row.bracket-loser{opacity:0.45}
+.bracket-name{font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;flex:1;line-height:1.1}
+.bracket-name.scualo{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px}
+.bracket-score{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;min-width:22px;text-align:right}
+.bracket-divider{height:1px;background:var(--border);margin:0 12px}
+.bracket-detail{font-size:10px;color:var(--grey2);padding:6px 12px;line-height:1.6;border-top:1px solid var(--border)}
 </style>
 </head>
 <body>
@@ -517,7 +531,7 @@ function loadRomagnaSport(tab) {
   if (tipo === "classifica" && cachedClassifica) { renderClassifica(cachedClassifica); return; }
   if (tipo === "calendario" && cachedCalendario) { renderRisultati(cachedCalendario); return; }
   if (tipo === "coppa-classifica" && cachedCoppaClassifica) { renderClassifica(cachedCoppaClassifica); return; }
-  if (tipo === "coppa-calendario" && cachedCoppaCalendario) { renderRisultatiCoppa(cachedCoppaCalendario); return; }
+  if (tipo === "coppa-calendario" && cachedCoppaCalendario) { renderTabelloneCoppa(cachedCoppaCalendario); return; }
 
   var url = PROXY_URL + "?gir=" + RS_GIR + "&coppa=" + COPPA_ID + "&tipo=" + tipo + "&anno=2025&team=scual";
   fetch(url)
@@ -531,7 +545,7 @@ function loadRomagnaSport(tab) {
       if (tipo === "classifica") { cachedClassifica = json.data; renderClassifica(json.data); }
       else if (tipo === "calendario") { cachedCalendario = json.data; renderRisultati(json.data); }
       else if (tipo === "coppa-classifica") { cachedCoppaClassifica = json.data; renderClassifica(json.data); }
-      else { cachedCoppaCalendario = json.data; renderRisultatiCoppa(json.data); }
+      else { cachedCoppaCalendario = json.data; renderTabelloneCoppa(json.data); }
     })
     .catch(function() { showRsError(tab); });
 }
@@ -562,6 +576,176 @@ function renderClassifica(data) {
   }
   tbl.appendChild(tbody); wrap.appendChild(tbl);
   container.innerHTML = ""; container.appendChild(wrap);
+}
+
+
+function renderTabelloneCoppa(data) {
+  var container = document.getElementById("rs-content");
+  container.innerHTML = "";
+
+  // Separate: fase girone vs fasi eliminatorie
+  var gironeData = data.filter(function(m) { return m.giornata.indexOf("1a Fase") >= 0; });
+  var elimData = data.filter(function(m) { return m.giornata.indexOf("1a Fase") < 0; });
+
+  // If no eliminatory data, show just girone
+  if (!elimData.length) {
+    renderRisultatiCoppa(data); return;
+  }
+
+  // ── GIRONE (collapsible summary) ──
+  if (gironeData.length) {
+    var gSec = document.createElement("div"); gSec.className = "rs-section";
+    var gLbl = document.createElement("div"); gLbl.className = "rs-section-label";
+    gLbl.textContent = "Fase a Gironi"; gSec.appendChild(gLbl);
+
+    // Show only our team matches
+    var ourMatches = gironeData.filter(function(m) {
+      return (m.casa + m.ospite).toLowerCase().indexOf("scual") >= 0;
+    });
+    var wrap = document.createElement("div"); wrap.className = "rs-risultati";
+    ourMatches.forEach(function(m) {
+      var card = document.createElement("div"); card.className = "rs-match";
+      card.style.borderColor = "rgba(255,255,255,0.35)";
+      var hdr = document.createElement("div"); hdr.className = "rs-match-date";
+      hdr.textContent = m.giornata.replace("1a Fase — ","") + (m.data ? "  —  " + m.data : "");
+      card.appendChild(hdr);
+      var row = document.createElement("div"); row.className = "rs-match-teams";
+      var casa = document.createElement("div");
+      casa.className = "rs-team" + (m.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
+      casa.textContent = normalizeTeam(m.casa); row.appendChild(casa);
+      var sc = document.createElement("div"); sc.className = "rs-score"; sc.textContent = m.score || "-"; row.appendChild(sc);
+      var osp = document.createElement("div");
+      osp.className = "rs-team right" + (m.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
+      osp.textContent = normalizeTeam(m.ospite); row.appendChild(osp);
+      card.appendChild(row); wrap.appendChild(card);
+    });
+    gSec.appendChild(wrap);
+    container.appendChild(gSec);
+  }
+
+  // ── BUILD BRACKET ──
+  // Group eliminatory matches by "scontro" (pair of teams across andata+ritorno)
+  var scontri = {};
+  elimData.forEach(function(m) {
+    // Key: fase + sorted team names
+    var fase = m.giornata.split(" — ")[0];
+    var teams = [m.casa, m.ospite].sort().join("|");
+    var key = fase + "||" + teams;
+    if (!scontri[key]) scontri[key] = { fase: fase, teamA: m.casa, teamB: m.ospite, andata: null, ritorno: null };
+    var s = scontri[key];
+    if (m.giornata.indexOf("Andata") >= 0) s.andata = m;
+    else if (m.giornata.indexOf("Ritorno") >= 0) s.ritorno = m;
+    // Make sure teamA/B consistent
+    if (s.andata) { s.teamA = s.andata.casa; s.teamB = s.andata.ospite; }
+  });
+
+  // Determine winner of each scontro
+  function getWinner(s) {
+    if (!s.andata && !s.ritorno) return null;
+    var gA = 0, gB = 0;
+    function addScore(m, isAndata) {
+      if (!m || !m.score) return;
+      var p = m.score.split("-");
+      var gc = parseInt(p[0]), go = parseInt(p[1]);
+      gA += gc; gB += go;
+    }
+    addScore(s.andata, true);
+    addScore(s.ritorno, false);
+    if (gA > gB) return s.teamA;
+    if (gB > gA) return s.teamB;
+    // Pareggio aggregato: guarda gol in trasferta (ritorno = ospite è teamA)
+    if (s.ritorno && s.ritorno.score) {
+      var p = s.ritorno.score.split("-");
+      var gAway_A = parseInt(p[1]); // teamA gioca in trasferta nel ritorno
+      var gAway_B = parseInt(p[0]); // teamB gioca in trasferta nel ritorno
+      if (gAway_A > gAway_B) return s.teamA;
+      if (gAway_B > gAway_A) return s.teamB;
+    }
+    return null; // ancora da decidere
+  }
+
+  // Order fasi
+  var faseOrder = ["Quarti di Finale", "Semifinali", "Finale"];
+  var scontriByFase = {};
+  Object.values(scontri).forEach(function(s) {
+    if (!scontriByFase[s.fase]) scontriByFase[s.fase] = [];
+    scontriByFase[s.fase].push(s);
+  });
+
+  // ── TABELLONE ──
+  var bracketSec = document.createElement("div"); bracketSec.className = "rs-section";
+  var bLbl = document.createElement("div"); bLbl.className = "rs-section-label";
+  bLbl.textContent = "Fase ad Eliminazione Diretta"; bracketSec.appendChild(bLbl);
+
+  faseOrder.forEach(function(fase) {
+    var items = scontriByFase[fase];
+    if (!items || !items.length) return;
+
+    var faseDiv = document.createElement("div"); faseDiv.className = "bracket-fase";
+    var faseLbl = document.createElement("div"); faseLbl.className = "bracket-fase-label";
+    faseLbl.textContent = fase; faseDiv.appendChild(faseLbl);
+
+    var grid = document.createElement("div"); grid.className = "bracket-grid";
+
+    items.forEach(function(s) {
+      var winner = getWinner(s);
+      var isScualoA = s.teamA.toLowerCase().indexOf("scual") >= 0;
+      var isScualoB = s.teamB.toLowerCase().indexOf("scual") >= 0;
+
+      // Aggregate score
+      var gA = 0, gB = 0;
+      if (s.andata && s.andata.score) { var p=s.andata.score.split("-"); gA+=parseInt(p[0]); gB+=parseInt(p[1]); }
+      if (s.ritorno && s.ritorno.score) { var p=s.ritorno.score.split("-"); gA+=parseInt(p[0]); gB+=parseInt(p[1]); }
+      var hasScore = s.andata || s.ritorno;
+
+      var card = document.createElement("div");
+      card.className = "bracket-card" + ((isScualoA || isScualoB) ? " bracket-our" : "");
+
+      // Team A row
+      var rowA = document.createElement("div");
+      rowA.className = "bracket-row" + (winner === s.teamA ? " bracket-winner" : (winner && winner !== s.teamA ? " bracket-loser" : ""));
+      var nameA = document.createElement("div"); nameA.className = "bracket-name" + (isScualoA ? " scualo" : "");
+      nameA.textContent = normalizeTeam(s.teamA); rowA.appendChild(nameA);
+      var scoreA = document.createElement("div"); scoreA.className = "bracket-score";
+      scoreA.textContent = hasScore ? gA : "-"; rowA.appendChild(scoreA);
+      card.appendChild(rowA);
+
+      // Divider
+      var div = document.createElement("div"); div.className = "bracket-divider"; card.appendChild(div);
+
+      // Team B row
+      var rowB = document.createElement("div");
+      rowB.className = "bracket-row" + (winner === s.teamB ? " bracket-winner" : (winner && winner !== s.teamB ? " bracket-loser" : ""));
+      var nameB = document.createElement("div"); nameB.className = "bracket-name" + (isScualoB ? " scualo" : "");
+      nameB.textContent = normalizeTeam(s.teamB); rowB.appendChild(nameB);
+      var scoreB = document.createElement("div"); scoreB.className = "bracket-score";
+      scoreB.textContent = hasScore ? gB : "-"; rowB.appendChild(scoreB);
+      card.appendChild(rowB);
+
+      // Andata/Ritorno detail
+      if (s.andata || s.ritorno) {
+        var detail = document.createElement("div"); detail.className = "bracket-detail";
+        if (s.andata) {
+          var sp = document.createElement("span");
+          sp.textContent = "A: " + normalizeTeam(s.andata.casa) + " " + (s.andata.score||"?") + " " + normalizeTeam(s.andata.ospite);
+          detail.appendChild(sp); detail.appendChild(document.createElement("br"));
+        }
+        if (s.ritorno) {
+          var sp2 = document.createElement("span");
+          sp2.textContent = "R: " + normalizeTeam(s.ritorno.casa) + " " + (s.ritorno.score||"?") + " " + normalizeTeam(s.ritorno.ospite);
+          detail.appendChild(sp2);
+        }
+        card.appendChild(detail);
+      }
+
+      grid.appendChild(card);
+    });
+
+    faseDiv.appendChild(grid);
+    bracketSec.appendChild(faseDiv);
+  });
+
+  container.appendChild(bracketSec);
 }
 
 function renderRisultatiCoppa(data) {
