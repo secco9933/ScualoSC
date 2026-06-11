@@ -146,11 +146,12 @@ body{overflow:hidden}
 .bracket-detail{font-size:10px;color:var(--grey2);padding:6px 12px;line-height:1.6;border-top:1px solid var(--border)}
 
 
-.bracket-wrap{overflow-x:auto;padding:8px 0 16px;-webkit-overflow-scrolling:touch}
-.bracket-flex{display:flex;flex-direction:row;align-items:flex-start;gap:0;width:100%}
-.bracket-col{display:flex;flex-direction:column;align-items:stretch;flex-shrink:0;flex:1;min-width:0;max-width:160px}
-.bracket-col-lbl{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--grey2);text-align:center;padding:0 0 6px}
-.bm{background:var(--black3);border:1px solid var(--grey3);border-radius:8px;overflow:hidden;margin:4px 2px}
+
+.bracket-wrap{overflow-x:auto;padding:8px 0 20px;-webkit-overflow-scrolling:touch}
+.bracket-flex{display:flex;flex-direction:row;align-items:stretch;gap:0;width:100%}
+.bracket-col{display:flex;flex-direction:column;flex-shrink:0;flex:1;min-width:0;max-width:160px}
+.bracket-col-lbl{font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--grey2);text-align:center;padding:0 0 6px;flex-shrink:0}
+.bm{background:var(--black3);border:1px solid var(--grey3);border-radius:8px;overflow:hidden;margin:4px 2px;flex-shrink:0}
 .bm.ours{border-color:rgba(255,255,255,0.4)}
 .bt{display:flex;align-items:center;padding:6px 8px;gap:4px;min-height:26px}
 .bt.win{background:rgba(255,255,255,0.1)}
@@ -160,6 +161,15 @@ body{overflow:hidden}
 .bt-s{font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:900;min-width:14px;text-align:right;color:var(--white);flex-shrink:0}
 .bm-div{height:1px;background:var(--border)}
 .bm-det{font-size:9px;color:var(--grey2);padding:3px 8px;border-top:1px solid var(--border);letter-spacing:0.3px}
+.bracket-conn{flex-shrink:0;width:20px;display:flex;flex-direction:column;position:relative}
+.bracket-conn-top{flex:1;border-right:1px solid rgba(255,255,255,0.2)}
+.bracket-conn-top.left{border-right:none;border-left:1px solid rgba(255,255,255,0.2)}
+.bracket-conn-bot{flex:1;border-right:1px solid rgba(255,255,255,0.2)}
+.bracket-conn-bot.left{border-right:none;border-left:1px solid rgba(255,255,255,0.2)}
+.bracket-conn-mid{height:1px;background:rgba(255,255,255,0.2);width:100%}
+.bracket-conn-single{flex:1;display:flex;align-items:center}
+.bracket-conn-single-line{height:1px;background:rgba(255,255,255,0.2);width:100%}
+
 
 .bc{display:flex;flex-direction:column;justify-content:space-around;align-self:stretch;flex-shrink:0;width:20px}
 .bc svg{width:20px;height:100%;display:block}
@@ -764,30 +774,36 @@ function renderTabelloneCoppa(data) {
 
   // ── CONNECTOR SVG ──
   function makeConn2to1(dir) {
-    // Connects 2 matches on one side to 1 match on the other
-    // Each match card ~80px tall with margin. Total ~176px for 2 cards.
-    var h = 176;
-    var svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
-    svg.setAttribute("width","20"); svg.setAttribute("height",String(h));
-    svg.style.cssText = "display:block;width:20px;height:"+h+"px;flex-shrink:0;align-self:flex-start;margin-top:28px";
-    var color = "rgba(255,255,255,0.2)";
-    var y1=44, y2=44+h/2, ym=(y1+y2)/2;
-    var p = document.createElementNS("http://www.w3.org/2000/svg","path");
-    if (dir==="r") p.setAttribute("d","M0,"+y1+" H10 V"+ym+" M0,"+y2+" H10 V"+ym+" M10,"+ym+" H20");
-    else            p.setAttribute("d","M20,"+y1+" H10 V"+ym+" M20,"+y2+" H10 V"+ym+" M10,"+ym+" H0");
-    p.setAttribute("stroke",color); p.setAttribute("stroke-width","1.5"); p.setAttribute("fill","none");
-    svg.appendChild(p); return svg;
+    // Creates a connector: 2 items connect to 1 via CSS borders
+    var wrapper = document.createElement("div");
+    wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;padding-top:22px";
+    
+    var top = document.createElement("div");
+    top.style.cssText = "flex:1;border-bottom:1px solid rgba(255,255,255,0.22);";
+    top.style.borderRight = dir==="r" ? "1px solid rgba(255,255,255,0.22)" : "none";
+    top.style.borderLeft  = dir==="l" ? "1px solid rgba(255,255,255,0.22)" : "none";
+    
+    var mid = document.createElement("div");
+    mid.style.cssText = "height:1px;background:rgba(255,255,255,0.22)";
+    
+    var bot = document.createElement("div");
+    bot.style.cssText = "flex:1;border-top:1px solid rgba(255,255,255,0.22);";
+    bot.style.borderRight = dir==="r" ? "1px solid rgba(255,255,255,0.22)" : "none";
+    bot.style.borderLeft  = dir==="l" ? "1px solid rgba(255,255,255,0.22)" : "none";
+    
+    wrapper.appendChild(top);
+    wrapper.appendChild(mid);
+    wrapper.appendChild(bot);
+    return wrapper;
   }
 
   function makeConn1to1(dir) {
-    var svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
-    svg.setAttribute("width","20"); svg.setAttribute("height","40");
-    svg.setAttribute("viewBox","0 0 20 40");
-    svg.style.cssText = "display:block;width:20px;height:40px;flex-shrink:0;align-self:flex-start;margin-top:48px";
-    var p = document.createElementNS("http://www.w3.org/2000/svg","path");
-    p.setAttribute("d","M0,20 H20"); p.setAttribute("stroke","rgba(255,255,255,0.25)");
-    p.setAttribute("stroke-width","1.5"); p.setAttribute("fill","none");
-    svg.appendChild(p); return svg;
+    var wrapper = document.createElement("div");
+    wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;align-items:center;align-self:stretch;padding-top:22px";
+    var line = document.createElement("div");
+    line.style.cssText = "height:1px;background:rgba(255,255,255,0.22);width:100%";
+    wrapper.appendChild(line);
+    return wrapper;
   }
 
   // ── COLUMNS ──
@@ -814,15 +830,15 @@ function renderTabelloneCoppa(data) {
   if (!leftS.length) leftS = [semis[0]];
   if (!rightS.length) rightS = [semis[1]];
 
-  var colQ1 = makeCol("Quarti",    leftQ,              null);
+  var colQ1 = makeCol("Quarti",    leftQ,           null);
   var cn1   = makeConn2to1("r");
-  var colS1 = makeCol("Semifinali",[leftS[0]||null],   "26px");
+  var colS1 = makeCol("Semifinali",[leftS[0]||null],  null);
   var cn2   = makeConn1to1("r");
-  var colF  = makeCol("Finale",    [finaleArr[0]],      "68px");
+  var colF  = makeCol("Finale",    [finaleArr[0]],    null);
   var cn3   = makeConn1to1("l");
-  var colS2 = makeCol("Semifinali",[rightS[0]||null],  "26px");
+  var colS2 = makeCol("Semifinali",[rightS[0]||null], null);
   var cn4   = makeConn2to1("l");
-  var colQ2 = makeCol("Quarti",    rightQ,             null);
+  var colQ2 = makeCol("Quarti",    rightQ,            null);
 
   [colQ1,cn1,colS1,cn2,colF,cn3,colS2,cn4,colQ2].forEach(function(el){flex.appendChild(el);});
   wrap.appendChild(flex); bSec.appendChild(wrap); container.appendChild(bSec);
