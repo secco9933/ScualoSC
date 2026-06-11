@@ -662,27 +662,44 @@ function renderTabelloneCoppa(data) {
   });
 
   function agg(s) {
-    var gA=0,gB=0;
-    if(s.andata&&s.andata.score){var p=s.andata.score.split("-");gA+=parseInt(p[0])||0;gB+=parseInt(p[1])||0;}
-    if(s.ritorno&&s.ritorno.score){var p=s.ritorno.score.split("-");gA+=parseInt(p[0])||0;gB+=parseInt(p[1])||0;}
-    return {gA:gA,gB:gB};
+    var gA = 0, gB = 0;
+    if (s.andata && s.andata.score) {
+      var p = s.andata.score.split("-");
+      gA += parseInt(p[0]) || 0;
+      gB += parseInt(p[1]) || 0;
+    }
+    if (s.ritorno && s.ritorno.score) {
+      var p = s.ritorno.score.split("-");
+      gA += parseInt(p[1]) || 0;
+      gB += parseInt(p[0]) || 0;
+    }
+    return {gA: gA, gB: gB};
   }
 
   function calcWinner(s) {
-    if (!s) return null;
-    if (!s.andata && !s.ritorno) return null;
-    var a = agg(s);
-    if (a.gA > a.gB) return s.teamA;
-    if (a.gB > a.gA) return s.teamB;
-    // Pareggio aggregato: gol in trasferta
-    // Nel ritorno, teamB gioca in casa → teamA è ospite → gol trasferta teamA = p[1] del ritorno
+    if (!s || (!s.andata && !s.ritorno)) return null;
+    var gA = 0, gB = 0;
+    // teamA is home in andata: score[0] for A, score[1] for B
+    if (s.andata && s.andata.score) {
+      var p = s.andata.score.split("-");
+      gA += parseInt(p[0]) || 0;
+      gB += parseInt(p[1]) || 0;
+    }
+    // teamA is away in ritorno: score[1] for A, score[0] for B
     if (s.ritorno && s.ritorno.score) {
       var p = s.ritorno.score.split("-");
-      var awayA = parseInt(p[1])||0; // teamA gol in trasferta nel ritorno
-      var awayB = parseInt(p[0])||0; // teamB gol in trasferta nel ritorno
-      if (awayA > awayB) return s.teamA;
-      if (awayB > awayA) return s.teamB;
+      gA += parseInt(p[1]) || 0;
+      gB += parseInt(p[0]) || 0;
     }
+    if (gA > gB) return s.teamA;
+    if (gB > gA) return s.teamB;
+    // Pareggio aggregato: gol in trasferta (away goals)
+    // teamA away goals = ritorno score[1], teamB away goals = andata score[1]
+    var awayA = 0, awayB = 0;
+    if (s.ritorno && s.ritorno.score) awayA = parseInt(s.ritorno.score.split("-")[1]) || 0;
+    if (s.andata && s.andata.score) awayB = parseInt(s.andata.score.split("-")[1]) || 0;
+    if (awayA > awayB) return s.teamA;
+    if (awayB > awayA) return s.teamB;
     return null;
   }
 
@@ -787,15 +804,24 @@ function renderTabelloneCoppa(data) {
   var wrap = document.createElement("div"); wrap.className="bracket-wrap";
   var flex = document.createElement("div"); flex.className="bracket-flex";
 
-  var colQ1 = makeCol("Quarti",   [quarti[0],quarti[1]], null);
+  // Sinistra: Scualo vs Fratte (idx 1), Vis Servi vs O.Crocetta (idx 2)
+  // Destra:   Real SV vs Santa Aq (idx 0), Verucchiese vs Toro Siderale (idx 3)
+  var leftQ  = [quarti[1], quarti[2]];
+  var rightQ = [quarti[0], quarti[3]];
+  var leftS  = semis.filter(function(s){ return s && (s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0); });
+  var rightS = semis.filter(function(s){ return !s || !(s.teamA.toLowerCase().indexOf("scual")>=0||s.teamB.toLowerCase().indexOf("scual")>=0); });
+  if (!leftS.length) leftS = [semis[0]];
+  if (!rightS.length) rightS = [semis[1]];
+
+  var colQ1 = makeCol("Quarti",    leftQ, null);
   var cn1   = makeConn2to1("r");
-  var colS1 = makeCol("Semifinali",[semis[0]], "22px");
+  var colS1 = makeCol("Semifinali",[leftS[0]||null], "22px");
   var cn2   = makeConn1to1("r");
-  var colF  = makeCol("Finale",   [finaleArr[0]], "60px");
+  var colF  = makeCol("Finale",    [finaleArr[0]], "60px");
   var cn3   = makeConn1to1("l");
-  var colS2 = makeCol("Semifinali",[semis[1]], "22px");
+  var colS2 = makeCol("Semifinali",[rightS[0]||null], "22px");
   var cn4   = makeConn2to1("l");
-  var colQ2 = makeCol("Quarti",   [quarti[2],quarti[3]], null);
+  var colQ2 = makeCol("Quarti",    rightQ, null);
 
   [colQ1,cn1,colS1,cn2,colF,cn3,colS2,cn4,colQ2].forEach(function(el){flex.appendChild(el);});
   wrap.appendChild(flex); bSec.appendChild(wrap); container.appendChild(bSec);
