@@ -342,11 +342,11 @@ function renderHomeMatches(data) {
     var teams = document.createElement("div"); teams.className = "next-match-teams";
     var casa = document.createElement("div");
     casa.className = "next-team" + (next.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-    casa.textContent = next.casa; teams.appendChild(casa);
+    casa.textContent = normalizeTeam(next.casa); teams.appendChild(casa);
     var vs = document.createElement("div"); vs.className = "next-vs"; vs.textContent = "VS"; teams.appendChild(vs);
     var ospite = document.createElement("div");
     ospite.className = "next-team" + (next.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-    ospite.textContent = next.ospite; teams.appendChild(ospite);
+    ospite.textContent = normalizeTeam(next.ospite); teams.appendChild(ospite);
     nextEl.appendChild(teams);
     if (next.data) {
       var dt = document.createElement("div"); dt.className = "next-match-date"; dt.textContent = next.data;
@@ -382,11 +382,11 @@ function renderHomeMatches(data) {
 
     var casa = document.createElement("div");
     casa.className = "mini-result-team" + (scualoCasa ? " scualo" : "");
-    casa.textContent = m.casa; row.appendChild(casa);
+    casa.textContent = normalizeTeam(m.casa); row.appendChild(casa);
     var sc = document.createElement("div"); sc.className = "mini-result-score"; sc.textContent = m.score; row.appendChild(sc);
     var ospite = document.createElement("div");
     ospite.className = "mini-result-team right" + (!scualoCasa ? " scualo" : "");
-    ospite.textContent = m.ospite; row.appendChild(ospite);
+    ospite.textContent = normalizeTeam(m.ospite); row.appendChild(ospite);
     resEl.appendChild(row);
   });
 }
@@ -426,7 +426,7 @@ function renderHomeTable(data) {
     var d = data[idx];
     var tr = document.createElement("tr");
     if (idx === scualoIdx) tr.className = "scualo";
-    var vals = [idx + 1, d.team, d.g, d.pts];
+    var vals = [idx + 1, normalizeTeam(d.team), d.g, d.pts];
     vals.forEach(function(v) {
       var td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
     });
@@ -536,6 +536,12 @@ function loadRomagnaSport(tab) {
     .catch(function() { showRsError(tab); });
 }
 
+function normalizeTeam(name) {
+  if (!name) return name;
+  if (name.toLowerCase().indexOf("scualo") >= 0) return "Scualo S.C.";
+  return name;
+}
+
 function renderClassifica(data) {
   var container = document.getElementById("rs-content");
   var wrap = document.createElement("div"); wrap.style.overflowX = "auto";
@@ -548,7 +554,7 @@ function renderClassifica(data) {
     var d = data[i];
     var tr = document.createElement("tr");
     if (d.team.toLowerCase().indexOf("scual") >= 0) tr.className = "scualo";
-    var vals = [i+1, d.team, d.pts, d.g, d.v, d.n, d.p, d.gf, d.gs, d.diff];
+    var vals = [i+1, normalizeTeam(d.team), d.pts, d.g, d.v, d.n, d.p, d.gf, d.gs, d.diff];
     for (var j = 0; j < vals.length; j++) {
       var td = document.createElement("td"); td.textContent = vals[j]; tr.appendChild(td);
     }
@@ -589,7 +595,7 @@ function renderRisultatiCoppa(data) {
       var row = document.createElement("div"); row.className = "rs-match-teams";
       var casa = document.createElement("div");
       casa.className = "rs-team" + (m.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      casa.textContent = m.casa; row.appendChild(casa);
+      casa.textContent = normalizeTeam(m.casa); row.appendChild(casa);
       var mid = document.createElement("div"); mid.className = "rs-score";
       if (m.score) { mid.textContent = m.score; }
       else {
@@ -600,7 +606,7 @@ function renderRisultatiCoppa(data) {
       row.appendChild(mid);
       var ospite = document.createElement("div");
       ospite.className = "rs-team right" + (m.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      ospite.textContent = m.ospite; row.appendChild(ospite);
+      ospite.textContent = normalizeTeam(m.ospite); row.appendChild(ospite);
       card.appendChild(row); wrap.appendChild(card);
     });
     sec.appendChild(wrap); container.appendChild(sec);
@@ -641,14 +647,14 @@ function renderRisultati(data) {
       var row = document.createElement("div"); row.className = "rs-match-teams";
       var casa = document.createElement("div");
       casa.className = "rs-team" + (m.casa.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      casa.textContent = m.casa; row.appendChild(casa);
+      casa.textContent = normalizeTeam(m.casa); row.appendChild(casa);
       var mid = document.createElement("div"); mid.className = "rs-score";
       if (showScore && m.score) { mid.textContent = m.score; }
       else { mid.textContent = m.data || "-"; mid.style.fontSize = "13px"; mid.style.color = "var(--grey1)"; mid.style.fontFamily = "Barlow,sans-serif"; mid.style.fontWeight = "500"; }
       row.appendChild(mid);
       var ospite = document.createElement("div");
       ospite.className = "rs-team right" + (m.ospite.toLowerCase().indexOf("scual") >= 0 ? " scualo" : "");
-      ospite.textContent = m.ospite; row.appendChild(ospite);
+      ospite.textContent = normalizeTeam(m.ospite); row.appendChild(ospite);
       card.appendChild(row); wrap.appendChild(card);
     });
     sec.appendChild(wrap); container.appendChild(sec);
