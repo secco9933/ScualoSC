@@ -776,7 +776,7 @@ function renderTabelloneCoppa(data) {
   function makeConn2to1(dir) {
     // Creates a connector: 2 items connect to 1 via CSS borders
     var wrapper = document.createElement("div");
-    wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;padding-top:22px";
+    wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;flex-direction:column;align-self:stretch";
     
     var top = document.createElement("div");
     top.style.cssText = "flex:1;border-bottom:1px solid rgba(255,255,255,0.22);";
@@ -799,7 +799,7 @@ function renderTabelloneCoppa(data) {
 
   function makeConn1to1(dir) {
     var wrapper = document.createElement("div");
-    wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;align-items:center;align-self:stretch;padding-top:22px";
+    wrapper.style.cssText = "width:20px;flex-shrink:0;display:flex;align-items:center;align-self:stretch";
     var line = document.createElement("div");
     line.style.cssText = "height:1px;background:rgba(255,255,255,0.22);width:100%";
     wrapper.appendChild(line);
