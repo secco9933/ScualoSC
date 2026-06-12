@@ -595,15 +595,31 @@ function renderGiocatori() {
 }
 
 function uploadFoto(giocatoreId, file, callback) {
-  var storageRef = firebase.storage().ref("foto_giocatori/" + giocatoreId + "_" + Date.now());
-  var uploadTask = storageRef.put(file);
-  uploadTask.on("state_changed",
-    null,
-    function(err) { alert("Errore upload: " + err.message); callback(null); },
-    function() {
-      uploadTask.snapshot.ref.getDownloadURL().then(function(url) { callback(url); });
-    }
-  );
+  // Resize to max 400x533 before upload
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement("canvas");
+      var maxW = 400, maxH = 533;
+      var ratio = Math.min(maxW / img.width, maxH / img.height);
+      if (ratio > 1) ratio = 1; // don't upscale
+      canvas.width  = Math.round(img.width  * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function(blob) {
+        var storageRef = firebase.storage().ref("foto_giocatori/" + giocatoreId + "_" + Date.now());
+        var uploadTask = storageRef.put(blob, { contentType: "image/jpeg" });
+        uploadTask.on("state_changed", null,
+          function(err) { alert("Errore upload: " + err.message); callback(null); },
+          function() { uploadTask.snapshot.ref.getDownloadURL().then(function(url) { callback(url); }); }
+        );
+      }, "image/jpeg", 0.82);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 
