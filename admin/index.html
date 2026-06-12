@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
 :root{--black:#0a0a0a;--black2:#111111;--black3:#1a1a1a;--black4:#222222;--black5:#2e2e2e;--white:#ffffff;--white2:#f0f0f0;--grey1:#888888;--grey2:#555555;--grey3:#333333;--red:#cc3333;--border:rgba(255,255,255,0.09);--radius:10px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -156,8 +157,8 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 .bracket-fase{margin-bottom:22px}
 .bracket-fase-label{font-family:"Barlow Condensed",sans-serif;font-size:16px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--white);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
 
-.bracket-wrap{width:100%;padding:8px 0}
-.bracket{display:flex;align-items:stretch;width:100%;position:relative}
+.bracket-wrap{width:100%;padding:8px 0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.bracket{display:flex;align-items:stretch;width:100%;min-width:720px;position:relative}
 .bracket-col{display:flex;flex-direction:column;flex:1;min-width:0}
 .bracket-col-lbl{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--grey1);text-align:center;padding-bottom:8px}
 .bracket-col-inner{display:flex;flex-direction:column;flex:1}
@@ -168,7 +169,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 .bt{display:flex;align-items:center;padding:6px 8px;gap:4px;min-height:26px}
 .bt.win{background:rgba(255,255,255,0.08)}
 .bt.lose{opacity:0.3}
-.bt-n{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--white)}
+.bt-n{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;flex:1;white-space:normal;word-break:break-word;color:var(--white);min-width:0;line-height:1.2}
 .bt-n.sc{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:2px}
 .bt-n.tbd{color:var(--grey2);font-style:italic}
 .bt-s{font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:900;color:var(--white);flex-shrink:0;min-width:14px;text-align:right}
@@ -190,6 +191,19 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 
 .bc{display:flex;flex-direction:column;justify-content:space-around;align-self:stretch;flex-shrink:0;width:20px}
 .bc svg{width:20px;height:100%;display:block}
+
+.rosa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.player-card{background:var(--black3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;text-align:center}
+.player-card-photo{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top;background:var(--black4);display:block}
+.player-card-photo-placeholder{width:100%;aspect-ratio:3/4;background:var(--black4);display:flex;align-items:center;justify-content:center}
+.player-card-photo-placeholder svg{width:48px;height:48px;color:var(--grey3)}
+.player-card-info{padding:8px 6px}
+.player-card-num{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;color:var(--grey1);letter-spacing:1px}
+.player-card-name{font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:900;text-transform:uppercase;color:var(--white);line-height:1.1;margin-top:2px}
+.player-card-wrap{position:relative;cursor:pointer}
+.player-card-edit{position:absolute;top:6px;right:6px;width:28px;height:28px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--grey3)}
+.player-card-edit svg{width:14px;height:14px;color:var(--white)}
+.upload-input{display:none}
 </style>
 </head>
 <body>
@@ -496,6 +510,7 @@ function renderDashboard() {
 }
 
 // GIOCATORI - usa createElement, zero innerHTML con dati utente
+
 function renderGiocatori() {
   var q = (document.getElementById("searchGiocatori").value || "").toLowerCase();
   var container = document.getElementById("giocatoriList");
@@ -504,60 +519,93 @@ function renderGiocatori() {
   var allFiltered = giocatori.filter(function(g) {
     return (g.nome + " " + g.cognome).toLowerCase().indexOf(q) >= 0 || String(g.numero||"").indexOf(q) >= 0;
   });
+  var giocatoriList = allFiltered.filter(function(g) { return g.ruolo !== "dirigente"; });
+  var dirigentiList = allFiltered.filter(function(g) { return g.ruolo === "dirigente" || g.ruolo === "dirigente-giocatore"; });
 
-  // Giocatori: ruolo == "giocatore" OR "dirigente-giocatore"
-  var giocatoriList = allFiltered.filter(function(g) {
-    return g.ruolo !== "dirigente";
-  });
-  // Dirigenti: ruolo == "dirigente" OR "dirigente-giocatore"
-  var dirigentiList = allFiltered.filter(function(g) {
-    return g.ruolo === "dirigente" || g.ruolo === "dirigente-giocatore";
-  });
+  function makePlaceholder() {
+    var ph = document.createElement("div"); ph.className = "player-card-photo-placeholder";
+    ph.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
+    return ph;
+  }
 
-  function makePlayerRow(g, showD) {
-    var row = document.createElement("div"); row.className = "player-row";
-    var num = document.createElement("div"); num.className = "player-num";
-    if (showD) {
-      num.textContent = "D";
-      num.style.color = "var(--grey1)";
-      num.style.fontSize = "16px";
+  function makeAdminCard(g, showD) {
+    var wrap = document.createElement("div"); wrap.className = "player-card player-card-wrap";
+
+    // Photo + edit button
+    var photoWrap = document.createElement("div"); photoWrap.style.position = "relative";
+    if (g.fotoUrl) {
+      var img = document.createElement("img"); img.className = "player-card-photo";
+      img.src = g.fotoUrl; img.alt = g.cognome;
+      img.onerror = function() { photoWrap.replaceChild(makePlaceholder(), img); };
+      photoWrap.appendChild(img);
     } else {
-      num.textContent = g.numero || "-";
+      photoWrap.appendChild(makePlaceholder());
     }
-    row.appendChild(num);
-    var info = document.createElement("div"); info.className = "player-info";
-    var name = document.createElement("div"); name.className = "player-name";
-    name.textContent = g.cognome + " " + g.nome;
 
-    info.appendChild(name);
-    var meta = document.createElement("div"); meta.className = "player-meta";
-    meta.textContent = (g.tessera || "No tessera") + " - " + (g.dataNascita || "-");
-    info.appendChild(meta);
-    row.appendChild(info);
-    var btn = document.createElement("button"); btn.className = "btn-icon btn-danger";
-    btn.dataset.id = g.id;
-    btn.innerHTML = "<svg class='delete-svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><polyline points='3,6 5,6 21,6'/><path d='M19,6l-1,14H6L5,6'/><path d='M10,11v6M14,11v6'/><path d='M9,6V4h6v2'/></svg>";
-    btn.addEventListener("click", function() { deleteGiocatore(this.dataset.id); });
-    row.appendChild(btn);
-    return row;
+    // Edit/upload button
+    var editBtn = document.createElement("div"); editBtn.className = "player-card-edit";
+    editBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+    var fileInput = document.createElement("input"); fileInput.type = "file"; fileInput.accept = "image/*"; fileInput.className = "upload-input";
+    fileInput.addEventListener("change", function() {
+      if (!fileInput.files[0]) return;
+      uploadFoto(g.id, fileInput.files[0], function(url) {
+        if (url) {
+          db.collection("giocatori").doc(g.id).update({ fotoUrl: url });
+        }
+      });
+    });
+    editBtn.addEventListener("click", function(e) { e.stopPropagation(); fileInput.click(); });
+    photoWrap.appendChild(editBtn);
+    photoWrap.appendChild(fileInput);
+    wrap.appendChild(photoWrap);
+
+    // Delete button (top-left)
+    var delBtn = document.createElement("div");
+    delBtn.style.cssText = "position:absolute;top:6px;left:6px;width:28px;height:28px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--grey3);cursor:pointer;z-index:2";
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/><path d="M10,11v6M14,11v6"/><path d="M9,6V4h6v2"/></svg>';
+    delBtn.addEventListener("click", function(e) { e.stopPropagation(); deleteGiocatore(g.id); });
+    photoWrap.appendChild(delBtn);
+
+    // Info
+    var info = document.createElement("div"); info.className = "player-card-info";
+    var num = document.createElement("div"); num.className = "player-card-num";
+    num.textContent = showD ? "DIR" : (g.numero ? "N. " + g.numero : "");
+    info.appendChild(num);
+    var name = document.createElement("div"); name.className = "player-card-name";
+    name.textContent = g.cognome + " " + g.nome; info.appendChild(name);
+    wrap.appendChild(info);
+    return wrap;
   }
 
   function makeSection(title, list, showD) {
     if (!list.length) return;
     var lbl = document.createElement("div"); lbl.className = "roster-section-label";
-    lbl.textContent = title + " (" + list.length + ")";
-    container.appendChild(lbl);
-    list.forEach(function(g) { container.appendChild(makePlayerRow(g, showD)); });
+    lbl.textContent = title + " (" + list.length + ")"; container.appendChild(lbl);
+    var grid = document.createElement("div"); grid.className = "rosa-grid";
+    list.forEach(function(g) { grid.appendChild(makeAdminCard(g, showD)); });
+    container.appendChild(grid);
   }
 
   if (!allFiltered.length) {
     var e = document.createElement("div"); e.className = "empty-state";
     e.textContent = "Nessun risultato trovato"; container.appendChild(e); return;
   }
-
   makeSection("Giocatori", giocatoriList, false);
   makeSection("Dirigenti", dirigentiList, true);
 }
+
+function uploadFoto(giocatoreId, file, callback) {
+  var storageRef = firebase.storage().ref("foto_giocatori/" + giocatoreId + "_" + Date.now());
+  var uploadTask = storageRef.put(file);
+  uploadTask.on("state_changed",
+    null,
+    function(err) { alert("Errore upload: " + err.message); callback(null); },
+    function() {
+      uploadTask.snapshot.ref.getDownloadURL().then(function(url) { callback(url); });
+    }
+  );
+}
+
 
 function deleteGiocatore(id) {
   if (!confirm("Rimuovere questo giocatore?")) return;
@@ -1154,6 +1202,47 @@ function renderTabelloneCoppa(data) {
 
 
 
+
+
+function renderRisultati(data) {
+  var container = document.getElementById("rs-content");
+  container.innerHTML = "";
+  data = data.slice();
+  data.sort(function(a,b){ return giornataNum(a)-giornataNum(b); });
+  var lastPlayed=0;
+  data.forEach(function(m){ if(m.score){var n=giornataNum(m);if(n>lastPlayed)lastPlayed=n;} });
+  var risultati=[],recuperi=[],prossimi=[];
+  data.forEach(function(m){
+    var n=giornataNum(m);
+    if(m.score) risultati.push(m);
+    else if(n<=lastPlayed) recuperi.push(m);
+    else prossimi.push(m);
+  });
+  function makeSection(title,items,showScore){
+    if(!items.length) return;
+    var sec=document.createElement("div"); sec.className="rs-section";
+    var lbl=document.createElement("div"); lbl.className="rs-section-label"; lbl.textContent=title; sec.appendChild(lbl);
+    var wrap=document.createElement("div"); wrap.className="rs-risultati";
+    items.forEach(function(m){
+      var card=document.createElement("div"); card.className="rs-match";
+      if((m.casa+m.ospite).toLowerCase().indexOf("scual")>=0) card.style.borderColor="rgba(255,255,255,0.35)";
+      var hdr=document.createElement("div"); hdr.className="rs-match-date";
+      hdr.textContent=m.giornata+(m.data?"  —  "+m.data:""); card.appendChild(hdr);
+      var row=document.createElement("div"); row.className="rs-match-teams";
+      var c=document.createElement("div"); c.className="rs-team"+(m.casa.toLowerCase().indexOf("scual")>=0?" scualo":""); c.textContent=normalizeTeam(m.casa); row.appendChild(c);
+      var mid=document.createElement("div"); mid.className="rs-score";
+      if(showScore&&m.score){mid.textContent=m.score;}
+      else{mid.textContent=m.data||"-";mid.style.fontSize="13px";mid.style.color="var(--grey1)";mid.style.fontFamily="Barlow,sans-serif";mid.style.fontWeight="500";}
+      row.appendChild(mid);
+      var o=document.createElement("div"); o.className="rs-team right"+(m.ospite.toLowerCase().indexOf("scual")>=0?" scualo":""); o.textContent=normalizeTeam(m.ospite); row.appendChild(o);
+      card.appendChild(row); wrap.appendChild(card);
+    });
+    sec.appendChild(wrap); container.appendChild(sec);
+  }
+  makeSection("Risultati",risultati,true);
+  makeSection("Prossimi incontri",prossimi,false);
+  makeSection("Recuperi",recuperi,false);
+}
 
 function renderRisultatiCoppa(data) {
   var container = document.getElementById("rs-content");
