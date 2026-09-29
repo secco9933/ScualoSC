@@ -830,7 +830,7 @@ function savePartita() {
 }
 
 // PDF
-function generatePDF() { /* v20rows */
+function generatePDF() { /* v20rows-gap16 */
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({unit:"mm",format:"a4"});
   var W = 210, margin = 15;
@@ -892,9 +892,9 @@ function generatePDF() { /* v20rows */
       doc.text(p.dataNascita||"",colX[3]+2,rowY+4.8);
     }
   }
-  y+=20*rowH+10;
+  y = 68 + rowH + 20*rowH + 16; /* absolute: header(68) + headerH(7) + 20rows(140) + gap(16) = 231 */
   doc.setFontSize(9); doc.setFont("helvetica","bold");
-  doc.setFont("helvetica","bold"); doc.text("Allenatore",margin,y);
+  doc.text("Allenatore",margin,y);
   doc.line(margin+20,y+0.5,margin+90,y+0.5);
   // Dirigenti selezionati - uno per riga per evitare overflow
   var dirSelezionati = giocatori.filter(function(g) { return selectedForDistintaDir.has(g.id); });
