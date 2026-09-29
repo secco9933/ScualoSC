@@ -830,30 +830,39 @@ function savePartita() {
 }
 
 // PDF
-function generatePDF() { /* v20rows */
+function generatePDF() {
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({unit:"mm",format:"a4"});
-  var W = 210, margin = 15;
+  var W = 210, H = 297, margin = 15;
   var tipoBtn = document.querySelector(".tipo-btn.active");
   var tipo = tipoBtn ? tipoBtn.dataset.tipo : "campionato";
   var matchDate = document.getElementById("dist-date").value || "_______________";
   var matchField = document.getElementById("dist-campo").value || "_______________";
   var matchOpponent = document.getElementById("dist-avv").value || "_______________";
+
   var selected = [];
-  for (var i = 0; i < giocatori.length; i++) { if (selectedForDistinta.has(giocatori[i].id)) selected.push(giocatori[i]); }
+  for (var i = 0; i < giocatori.length; i++) {
+    if (selectedForDistinta.has(giocatori[i].id)) selected.push(giocatori[i]);
+  }
   selected.sort(function(a,b) { return (a.numero||0)-(b.numero||0); });
 
-  doc.setFillColor(255,255,255); doc.rect(0,0,W,297,"F");
+  var dirSelezionati = giocatori.filter(function(g) { return selectedForDistintaDir.has(g.id); });
+
+  doc.setFillColor(255,255,255); doc.rect(0,0,W,H,"F");
+
+  // Logo
   try {
     var logoImg = document.getElementById("logoData");
-    doc.addImage(logoImg.src, "PNG", margin, 6, 20, 20, undefined, "FAST");
-  } catch(e) { console.log("Logo PDF error:", e); }
+    doc.addImage(logoImg.src,"PNG",margin,6,20,20,undefined,"FAST");
+  } catch(e) {}
 
+  // Header
   doc.setFontSize(16); doc.setFont("helvetica","bold"); doc.setTextColor(0,0,0);
-  doc.text("SCUALO SPORTING CLUB", W/2, 14, {align:"center"});
+  doc.text("SCUALO SPORTING CLUB",W/2,14,{align:"center"});
   doc.setFontSize(9); doc.setFont("helvetica","normal");
-  doc.text("Viale Puglia 12, Riccione", W/2, 20, {align:"center"});
+  doc.text("Viale Puglia 12, Riccione",W/2,20,{align:"center"});
 
+  // Tipo gara checkboxes
   var y = 30; doc.setFontSize(10);
   var tipi = ["Campionato","Coppa","Torneo"]; var cx = margin;
   for (var i = 0; i < tipi.length; i++) {
@@ -861,64 +870,98 @@ function generatePDF() { /* v20rows */
     if (tipo === tipi[i].toLowerCase()) { doc.setFont("helvetica","bold"); doc.text("X",cx+0.7,y-0.5); doc.setFont("helvetica","normal"); }
     doc.text(tipi[i],cx+6,y-0.5); cx+=38;
   }
-  y=46;
+
+  // Match info
+  y = 46;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9);
   doc.text("Gara del giorno",margin,y); doc.line(margin+32,y+0.5,margin+70,y+0.5);
   doc.setFont("helvetica","bold"); doc.text(matchDate,margin+34,y); doc.setFont("helvetica","normal");
   doc.text("Campo",margin+74,y); doc.line(margin+86,y+0.5,W-margin,y+0.5);
   doc.setFont("helvetica","bold"); doc.text(matchField,margin+88,y); doc.setFont("helvetica","normal");
-  y=55; doc.text("Tra le societa",margin,y); doc.line(margin+28,y+0.5,W-margin,y+0.5);
+
+  y = 55;
+  doc.text("Tra le societa",margin,y); doc.line(margin+28,y+0.5,W-margin,y+0.5);
   doc.setFont("helvetica","bold"); doc.text(matchOpponent,margin+30,y); doc.setFont("helvetica","normal");
-  y=62; doc.setFontSize(12); doc.setFont("helvetica","bold");
+
+  // Table title
+  y = 63;
+  doc.setFontSize(11); doc.setFont("helvetica","bold");
   doc.text("ELENCO GIOCATORI",W/2,y,{align:"center"});
-  y=68; var colX=[margin,margin+22,margin+118,margin+152]; var rowH=7;
-  doc.setFillColor(220,220,220); doc.rect(margin,y,W-margin*2,rowH,"F");
-  doc.setDrawColor(100,100,100); doc.setLineWidth(0.3); doc.rect(margin,y,W-margin*2,rowH);
+
+  // Table
+  var colX = [margin, margin+22, margin+118, margin+152];
+  var rowH = 6.8; // height per row
+  var tableTop = 68;
+
+  // Header row
+  doc.setFillColor(220,220,220);
+  doc.rect(margin,tableTop,W-margin*2,rowH,"F");
+  doc.setDrawColor(100,100,100); doc.setLineWidth(0.3);
+  doc.rect(margin,tableTop,W-margin*2,rowH);
   doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(0,0,0);
   var headers = ["Numero","Cognome e Nome","N. Tessera","Data nascita"];
-  for (var i=0; i<headers.length; i++) { doc.text(headers[i],colX[i]+2,y+4.8); if(i>0) doc.line(colX[i],y,colX[i],y+rowH); }
-  y+=rowH; doc.setFont("helvetica","normal"); doc.setFontSize(8);
+  for (var i=0; i<headers.length; i++) {
+    doc.text(headers[i],colX[i]+2,tableTop+4.6);
+    if(i>0) doc.line(colX[i],tableTop,colX[i],tableTop+rowH);
+  }
+
+  // Data rows (20 rows)
+  doc.setFont("helvetica","normal"); doc.setFontSize(8);
   for (var i=0; i<20; i++) {
-    var rowY=y+i*rowH; var p=selected[i];
-    doc.setFontSize(8);
-    doc.setFillColor(i%2===0?248:255,i%2===0?248:255,i%2===0?248:255);
+    var rowY = tableTop + rowH + i*rowH;
+    var p = selected[i];
+    doc.setFillColor(i%2===0?248:255, i%2===0?248:255, i%2===0?248:255);
     doc.rect(margin,rowY,W-margin*2,rowH,"F");
-    doc.setDrawColor(180,180,180); doc.setLineWidth(0.2); doc.rect(margin,rowY,W-margin*2,rowH);
+    doc.setDrawColor(180,180,180); doc.setLineWidth(0.2);
+    doc.rect(margin,rowY,W-margin*2,rowH);
     for (var j=1; j<colX.length; j++) doc.line(colX[j],rowY,colX[j],rowY+rowH);
     if (p) {
       doc.setTextColor(30,30,30);
-      doc.text(String(p.numero||""),colX[0]+2,rowY+4.8);
-      doc.text((p.cognome+" "+p.nome).toUpperCase(),colX[1]+2,rowY+4.8);
-      doc.text(p.tessera||"",colX[2]+2,rowY+4.8);
-      doc.text(p.dataNascita||"",colX[3]+2,rowY+4.8);
+      doc.text(String(p.numero||""),colX[0]+2,rowY+4.6);
+      doc.text((p.cognome+" "+p.nome).toUpperCase(),colX[1]+2,rowY+4.6);
+      doc.text(String(p.tessera||""),colX[2]+2,rowY+4.6);
+      doc.text(String(p.dataNascita||""),colX[3]+2,rowY+4.6);
     }
   }
-  y+=20*rowH+4;
-  doc.setFontSize(9); doc.setFont("helvetica","bold");
-  doc.setFont("helvetica","bold"); doc.text("Allenatore",margin,y);
-  doc.line(margin+20,y+0.5,margin+90,y+0.5);
-  // Dirigenti selezionati - uno per riga per evitare overflow
-  var dirSelezionati = giocatori.filter(function(g) { return selectedForDistintaDir.has(g.id); });
+
+  // tableBottom = tableTop + rowH(header) + 20*rowH(data)
+  var tableBottom = tableTop + rowH + 20*rowH; // = 68 + 6.8 + 136 = 210.8
+
+  // Footer section - starts 10mm below table
+  var footerY = tableBottom + 10; // = ~221
+
+  // Allenatore
+  doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(0,0,0);
+  doc.text("Allenatore",margin,footerY);
+  doc.line(margin+22,footerY+0.5,margin+100,footerY+0.5);
+
+  // Dirigenti
   if (dirSelezionati.length > 0) {
-    y+=8;
-    doc.setFontSize(9); doc.setFont("helvetica","bold");
-    doc.text("Dirigenti:", margin, y);
+    footerY += 8;
+    doc.text("Dirigenti:",margin,footerY);
     doc.setFont("helvetica","normal");
-    // Split into rows of max 3 per line to avoid overflow
     var perRow = 3;
-    for (var di = 0; di < dirSelezionati.length; di += perRow) {
-      var rowNames = dirSelezionati.slice(di, di + perRow).map(function(g) {
-        return g.cognome + " " + g.nome;
-      }).join("   |   ");
-      doc.text(rowNames, margin + 22, y);
-      if (di + perRow < dirSelezionati.length) { y += 6; }
+    for (var di=0; di<dirSelezionati.length; di+=perRow) {
+      var names = dirSelezionati.slice(di,di+perRow).map(function(g){ return g.cognome+" "+g.nome; }).join("   |   ");
+      doc.text(names,margin+22,footerY);
+      if (di+perRow < dirSelezionati.length) footerY += 6;
     }
   }
-  y+=8; doc.setFont("helvetica","bold"); doc.text("Guardalinee",margin,y);
-  doc.line(margin+22,y+0.5,margin+80,y+0.5);
-  y+=18;
+
+  // Guardalinee
+  footerY += 8;
+  doc.setFont("helvetica","bold");
+  doc.text("Guardalinee",margin,footerY);
+  doc.line(margin+24,footerY+0.5,margin+90,footerY+0.5);
+
+  // Firme
+  footerY += 20;
   doc.setFontSize(9);
-  doc.text("Il Dirigente",margin+20,y,{align:"center"}); doc.text("Arbitro Sig.",W-margin-30,y,{align:"center"});
-  doc.line(margin,y+12,margin+60,y+12); doc.line(W-margin-65,y+12,W-margin,y+12);
+  doc.text("Il Dirigente",margin+20,footerY,{align:"center"});
+  doc.text("Arbitro Sig.",W-margin-30,footerY,{align:"center"});
+  doc.line(margin,footerY+12,margin+60,footerY+12);
+  doc.line(W-margin-65,footerY+12,W-margin,footerY+12);
+
   doc.save("distinta_scualo.pdf");
 }
 
