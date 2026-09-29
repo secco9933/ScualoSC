@@ -830,7 +830,7 @@ function savePartita() {
 }
 
 // PDF
-function generatePDF() {
+function generatePDF() { /* v20rows */
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({unit:"mm",format:"a4"});
   var W = 210, margin = 15;
@@ -892,7 +892,7 @@ function generatePDF() {
       doc.text(p.dataNascita||"",colX[3]+2,rowY+4.8);
     }
   }
-  y+=20*rowH+4;
+  y+=20*rowH+10;
   doc.setFontSize(9); doc.setFont("helvetica","bold");
   doc.setFont("helvetica","bold"); doc.text("Allenatore",margin,y);
   doc.line(margin+20,y+0.5,margin+90,y+0.5);
