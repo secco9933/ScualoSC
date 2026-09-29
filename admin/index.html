@@ -830,7 +830,7 @@ function savePartita() {
 }
 
 // PDF
-function generatePDF() {
+function generatePDF() { /* v20rows */
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({unit:"mm",format:"a4"});
   var W = 210, margin = 15;
@@ -886,13 +886,13 @@ function generatePDF() {
     for (var j=1; j<colX.length; j++) doc.line(colX[j],rowY,colX[j],rowY+rowH);
     if (p) {
       doc.setTextColor(30,30,30);
-      doc.text(String(p.numero||""),colX[0]+2,rowY+5.5);
-      doc.text((p.cognome+" "+p.nome).toUpperCase(),colX[1]+2,rowY+5.5);
-      doc.text(p.tessera||"",colX[2]+2,rowY+5.5);
-      doc.text(p.dataNascita||"",colX[3]+2,rowY+5.5);
+      doc.text(String(p.numero||""),colX[0]+2,rowY+4.8);
+      doc.text((p.cognome+" "+p.nome).toUpperCase(),colX[1]+2,rowY+4.8);
+      doc.text(p.tessera||"",colX[2]+2,rowY+4.8);
+      doc.text(p.dataNascita||"",colX[3]+2,rowY+4.8);
     }
   }
-  y+=18*rowH+10;
+  y+=20*rowH+4;
   doc.setFontSize(9); doc.setFont("helvetica","bold");
   doc.setFont("helvetica","bold"); doc.text("Allenatore",margin,y);
   doc.line(margin+20,y+0.5,margin+90,y+0.5);
