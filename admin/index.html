@@ -679,7 +679,7 @@ function renderDistintaPlayers() {
     }
   }
 
-  document.getElementById("dist-counter").textContent = selectedForDistinta.size + "/18";
+  document.getElementById("dist-counter").textContent = selectedForDistinta.size + "/20";
   document.getElementById("dist-counter").classList.toggle("full", selectedForDistinta.size >= MAX_DISTINTA);
 
   // DIRIGENTI
@@ -868,17 +868,18 @@ function generatePDF() {
   doc.setFont("helvetica","bold"); doc.text(matchField,margin+88,y); doc.setFont("helvetica","normal");
   y=55; doc.text("Tra le societa",margin,y); doc.line(margin+28,y+0.5,W-margin,y+0.5);
   doc.setFont("helvetica","bold"); doc.text(matchOpponent,margin+30,y); doc.setFont("helvetica","normal");
-  y=64; doc.setFontSize(12); doc.setFont("helvetica","bold");
+  y=62; doc.setFontSize(12); doc.setFont("helvetica","bold");
   doc.text("ELENCO GIOCATORI",W/2,y,{align:"center"});
-  y=70; var colX=[margin,margin+22,margin+118,margin+152]; var rowH=8;
+  y=68; var colX=[margin,margin+22,margin+118,margin+152]; var rowH=7;
   doc.setFillColor(220,220,220); doc.rect(margin,y,W-margin*2,rowH,"F");
   doc.setDrawColor(100,100,100); doc.setLineWidth(0.3); doc.rect(margin,y,W-margin*2,rowH);
-  doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(0,0,0);
+  doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(0,0,0);
   var headers = ["Numero","Cognome e Nome","N. Tessera","Data nascita"];
-  for (var i=0; i<headers.length; i++) { doc.text(headers[i],colX[i]+2,y+5.5); if(i>0) doc.line(colX[i],y,colX[i],y+rowH); }
-  y+=rowH; doc.setFont("helvetica","normal"); doc.setFontSize(9);
+  for (var i=0; i<headers.length; i++) { doc.text(headers[i],colX[i]+2,y+4.8); if(i>0) doc.line(colX[i],y,colX[i],y+rowH); }
+  y+=rowH; doc.setFont("helvetica","normal"); doc.setFontSize(8);
   for (var i=0; i<20; i++) {
     var rowY=y+i*rowH; var p=selected[i];
+    doc.setFontSize(8);
     doc.setFillColor(i%2===0?248:255,i%2===0?248:255,i%2===0?248:255);
     doc.rect(margin,rowY,W-margin*2,rowH,"F");
     doc.setDrawColor(180,180,180); doc.setLineWidth(0.2); doc.rect(margin,rowY,W-margin*2,rowH);
