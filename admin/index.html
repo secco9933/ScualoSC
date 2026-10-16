@@ -240,6 +240,12 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
       <div class="distinta-grid" id="distintagrid"></div>
 
       <div class="dist-meta" style="margin-top:16px">
+        <span class="dist-section-label">Allenatore</span>
+        <span class="dist-counter" id="dist-all-counter">Nessuno</span>
+      </div>
+      <div class="distinta-grid" id="distintagrid-allenatore"></div>
+
+      <div class="dist-meta" style="margin-top:16px">
         <span class="dist-section-label">Dirigenti in distinta</span>
         <span class="dist-counter" id="dist-dir-counter">0 sel.</span>
       </div>
@@ -302,6 +308,10 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
       <div class="form-group"><label class="form-label">Data Nascita</label><input class="field-input" id="form-nascita" placeholder="gg/mm/aaaa"></div>
     </div>
     <div class="form-group"><label class="form-label">N. Tessera UISP</label><input class="field-input" id="form-tessera" placeholder="260057188"></div>
+    <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-top:4px">
+      <input type="checkbox" id="form-allenatore" style="width:18px;height:18px">
+      <label class="form-label" style="margin-bottom:0" for="form-allenatore">Idoneo come Allenatore (solo dirigenti)</label>
+    </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeAddPlayer()">Annulla</button>
       <button class="btn-primary btn-confirm" onclick="savePlayer()">Salva</button>
@@ -338,6 +348,7 @@ var currentMulteTab = "pendenti";
 var currentSection = "dashboard";
 var selectedForDistinta = new Set();
 var selectedForDistintaDir = new Set();
+var selectedAllenatoreId = null;
 var MAX_DISTINTA = 20;
 
 // Firebase init
@@ -577,12 +588,14 @@ function openEditPlayer(g) {
   document.getElementById("form-numero").value = g.numero || "";
   document.getElementById("form-tessera").value = g.tessera || "";
   document.getElementById("form-nascita").value = g.dataNascita || "";
+  document.getElementById("form-allenatore").checked = !!g.allenatore;
   document.getElementById("modalAddPlayer").style.display = "flex";
 }
 function closeAddPlayer() {
   document.getElementById("modalAddPlayer").style.display = "none";
   var ids = ["form-nome","form-cognome","form-numero","form-tessera","form-nascita"];
   for (var i = 0; i < ids.length; i++) document.getElementById(ids[i]).value = "";
+  document.getElementById("form-allenatore").checked = false;
   editingPlayerId = null;
 }
 function savePlayer() {
@@ -591,9 +604,10 @@ function savePlayer() {
   var numero = document.getElementById("form-numero").value.trim();
   var tessera = document.getElementById("form-tessera").value.trim();
   var dataNascita = document.getElementById("form-nascita").value.trim();
+  var allenatore = document.getElementById("form-allenatore").checked;
   if (!nome || !cognome) { alert("Nome e cognome sono obbligatori"); return; }
   if (!db) { closeAddPlayer(); return; }
-  var payload = {nome:nome,cognome:cognome,numero:numero?parseInt(numero):null,tessera:tessera,dataNascita:dataNascita};
+  var payload = {nome:nome,cognome:cognome,numero:numero?parseInt(numero):null,tessera:tessera,dataNascita:dataNascita,allenatore:allenatore};
   if (editingPlayerId) {
     db.collection("giocatori").doc(editingPlayerId).update(payload);
   } else {
@@ -604,11 +618,14 @@ function savePlayer() {
 }
 
 // DISTINTA
+function cognomeSort(a, b) { return (a.cognome||"").localeCompare(b.cognome||""); }
+
 function renderDistintaPlayers() {
   // GIOCATORI (giocatore + dirigente-giocatore)
   var container = document.getElementById("distintagrid");
-  var giocatoriList = giocatori.filter(function(g) { return g.ruolo !== "dirigente"; });
-  var dirigentiList = giocatori.filter(function(g) { return g.ruolo === "dirigente" || g.ruolo === "dirigente-giocatore"; });
+  var giocatoriList = giocatori.filter(function(g) { return g.ruolo !== "dirigente"; }).sort(cognomeSort);
+  var dirigentiList = giocatori.filter(function(g) { return g.ruolo === "dirigente" || g.ruolo === "dirigente-giocatore"; }).sort(cognomeSort);
+  var allenatoreList = giocatori.filter(function(g) { return !!g.allenatore; }).sort(cognomeSort);
 
   if (!giocatoriList.length) {
     container.innerHTML = "<div class='empty-state'>Caricamento...</div>"; 
@@ -666,6 +683,45 @@ function renderDistintaPlayers() {
   }
   document.getElementById("dist-dir-counter").textContent = selectedForDistintaDir.size + " sel.";
   renderDistintaDirStrip();
+
+  // ALLENATORE (singola selezione)
+  var allContainer = document.getElementById("distintagrid-allenatore");
+  if (!allenatoreList.length) {
+    allContainer.innerHTML = "<div class='empty-state'>Nessun dirigente idoneo impostato come allenatore. Modifica un dirigente per abilitarlo.</div>";
+  } else {
+    allContainer.innerHTML = "";
+    for (var i = 0; i < allenatoreList.length; i++) {
+      var g = allenatoreList[i];
+      var sel = selectedAllenatoreId === g.id;
+      var card = document.createElement("div");
+      card.className = "dist-card" + (sel ? " selected" : "");
+      card.dataset.id = g.id;
+      var num = document.createElement("div"); num.className = "dist-num"; num.textContent = "ALL"; card.appendChild(num);
+      var nm = document.createElement("div"); nm.className = "dist-name"; nm.textContent = g.cognome;
+      var sp = document.createElement("br"); nm.appendChild(sp);
+      var sp2 = document.createElement("span"); sp2.textContent = g.nome; nm.appendChild(sp2);
+      card.appendChild(nm);
+      if (sel) {
+        var chk = document.createElement("div"); chk.className = "dist-check";
+        chk.innerHTML = "<svg viewBox='0 0 12 12' fill='none'><path d='M2 6l3 3 5-5' stroke='#0a0a0a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>";
+        card.appendChild(chk);
+      }
+      card.addEventListener("click", function() { toggleAllenatore(this.dataset.id); });
+      allContainer.appendChild(card);
+    }
+  }
+  var allCounterEl = document.getElementById("dist-all-counter");
+  if (selectedAllenatoreId) {
+    var allG = giocatori.filter(function(g){return g.id===selectedAllenatoreId;})[0];
+    allCounterEl.textContent = allG ? (allG.cognome + " " + allG.nome) : "Selezionato";
+  } else {
+    allCounterEl.textContent = "Nessuno";
+  }
+}
+
+function toggleAllenatore(id) {
+  selectedAllenatoreId = (selectedAllenatoreId === id) ? null : id;
+  renderDistintaPlayers();
 }
 
 function toggleDistinta(id) {
@@ -846,9 +902,10 @@ function generatePDF() {
   for (var i = 0; i < giocatori.length; i++) {
     if (selectedForDistinta.has(giocatori[i].id)) selected.push(giocatori[i]);
   }
-  selected.sort(function(a,b) { return (a.numero||0)-(b.numero||0); });
+  selected.sort(cognomeSort);
 
-  var dirSelezionati = giocatori.filter(function(g) { return selectedForDistintaDir.has(g.id); });
+  var dirSelezionati = giocatori.filter(function(g) { return selectedForDistintaDir.has(g.id); }).sort(cognomeSort);
+  var allenatoreSel = selectedAllenatoreId ? giocatori.filter(function(g){ return g.id === selectedAllenatoreId; })[0] : null;
 
   doc.setFillColor(255,255,255); doc.rect(0,0,W,H,"F");
 
@@ -929,40 +986,50 @@ function generatePDF() {
   // tableBottom = tableTop + rowH(header) + 20*rowH(data)
   var tableBottom = tableTop + rowH + 20*rowH; // = 68 + 6.8 + 136 = 210.8
 
-  // Footer section - starts 10mm below table
-  var footerY = tableBottom + 10; // = ~221
+  function formatPersona(g) {
+    var parts = [(g.cognome||"").toUpperCase()+" "+(g.nome||"")];
+    if (g.dataNascita) parts.push(g.dataNascita);
+    if (g.tessera) parts.push(String(g.tessera));
+    return parts.join(", ");
+  }
+
+  // Footer section - starts 8mm below table
+  var footerY = tableBottom + 8; // = ~218.8
 
   // Allenatore
   doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(0,0,0);
   doc.text("Allenatore",margin,footerY);
-  doc.line(margin+22,footerY+0.5,margin+100,footerY+0.5);
+  doc.setFont("helvetica","normal");
+  if (allenatoreSel) doc.text(formatPersona(allenatoreSel),margin+24,footerY);
+  doc.line(margin+22,footerY+1,W-margin,footerY+1);
 
-  // Dirigenti
+  // Dirigenti - uno sotto l'altro, ognuno con tessera e data di nascita
   if (dirSelezionati.length > 0) {
-    footerY += 8;
-    doc.text("Dirigenti:",margin,footerY);
+    footerY += 7;
+    doc.setFont("helvetica","bold");
+    doc.text("Dirigenti",margin,footerY);
     doc.setFont("helvetica","normal");
-    var perRow = 3;
-    for (var di=0; di<dirSelezionati.length; di+=perRow) {
-      var names = dirSelezionati.slice(di,di+perRow).map(function(g){ return g.cognome+" "+g.nome; }).join("   |   ");
-      doc.text(names,margin+22,footerY);
-      if (di+perRow < dirSelezionati.length) footerY += 6;
+    for (var di = 0; di < dirSelezionati.length; di++) {
+      var lineY = footerY + di * 5.5;
+      doc.text(formatPersona(dirSelezionati[di]),margin+24,lineY);
+      doc.line(margin+22,lineY+1,W-margin,lineY+1);
     }
+    footerY += (dirSelezionati.length - 1) * 5.5;
   }
 
   // Guardalinee
-  footerY += 8;
+  footerY += 7;
   doc.setFont("helvetica","bold");
   doc.text("Guardalinee",margin,footerY);
   doc.line(margin+24,footerY+0.5,margin+90,footerY+0.5);
 
   // Firme
-  footerY += 20;
+  footerY += 18;
   doc.setFontSize(9);
   doc.text("Il Dirigente",margin+20,footerY,{align:"center"});
   doc.text("Arbitro Sig.",W-margin-30,footerY,{align:"center"});
-  doc.line(margin,footerY+12,margin+60,footerY+12);
-  doc.line(W-margin-65,footerY+12,W-margin,footerY+12);
+  doc.line(margin,footerY+11,margin+60,footerY+11);
+  doc.line(W-margin-65,footerY+11,W-margin,footerY+11);
 
   doc.save("distinta_scualo.pdf");
 }
