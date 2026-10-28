@@ -205,12 +205,12 @@ body{overflow:hidden}
 
 <script>
 
-var PROXY = "https://us-central1-scualosc-43817.cloudfunctions.net/romagnasport";
-var GIR = "277";
-var ANNO = "2026";
+// Dati campionato (calendario + classifica), aggiornati dall'admin tramite import comunicati PDF
+var calendarioData = [];
+var classificaData = [];
+var calendarioLoaded = false;
+var classificaLoaded = false;
 var rsCurrentTab = "calendario";
-var cachedCalendario = null;
-var cachedClassifica = null;
 
 function normalizeTeam(n){
   if(!n) return n;
@@ -224,40 +224,22 @@ function giornataNum(m){
   return match ? parseInt(match[0]) : 0;
 }
 
-function loadRS(tab){
+function renderRS(tab){
   var container = document.getElementById("rs-content");
-  container.innerHTML = '<div class="rs-loading">Caricamento...</div>';
-  var tipo = tab === "classifica" ? "classifica" : "calendario";
-  if(tipo==="classifica" && cachedClassifica){renderClassifica(cachedClassifica);return;}
-  if(tipo==="calendario" && cachedCalendario){renderCalendario(cachedCalendario);return;}
-  function doFetch(attempt){
-    fetch(PROXY+"?gir="+GIR+"&anno="+ANNO+"&tipo="+tipo)
-      .then(function(r){return r.json();})
-      .then(function(json){
-        if(!json.ok||!json.data||!json.data.length){
-          if(attempt<2){setTimeout(function(){doFetch(attempt+1);},1500);return;}
-          var e=document.createElement("div");e.className="rs-error";e.textContent=json.error||"Dati non disponibili.";
-          var btn=document.createElement("button");btn.className="rs-refresh";btn.textContent="Riprova";btn.onclick=function(){loadRS(tab);};
-          e.appendChild(btn);container.innerHTML="";container.appendChild(e);return;
-        }
-        if(tipo==="classifica"){cachedClassifica=json.data;renderClassifica(json.data);}
-        else{cachedCalendario=json.data;renderCalendario(json.data);}
-      })
-      .catch(function(){
-        if(attempt<2){setTimeout(function(){doFetch(attempt+1);},1500);return;}
-        var e=document.createElement("div");e.className="rs-error";e.textContent="Errore di connessione.";
-        var btn=document.createElement("button");btn.className="rs-refresh";btn.textContent="Riprova";btn.onclick=function(){loadRS(tab);};
-        e.appendChild(btn);container.innerHTML="";container.appendChild(e);
-      });
+  if(!calendarioLoaded){ container.innerHTML = '<div class="rs-loading">Caricamento...</div>'; return; }
+  var data = tab === "risultati" ? calendarioData.filter(function(m){return !!m.score;}) : calendarioData;
+  if(!data.length){
+    container.innerHTML = '<div class="rs-error">'+(tab==="risultati"?"Nessun risultato disponibile.":"Calendario non ancora disponibile.")+'</div>';
+    return;
   }
-  doFetch(0);
+  renderCalendario(data);
 }
 
 function rsTab(btn,tab){
   document.querySelectorAll(".rs-tab").forEach(function(b){b.classList.remove("active");});
   btn.classList.add("active");
   rsCurrentTab=tab;
-  loadRS(tab);
+  renderRS(tab);
 }
 
 function renderClassifica(data){
@@ -372,6 +354,19 @@ if(db){
     giocatori=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
     if(currentSection==="rosa") renderRosa(giocatori);
   });
+  db.collection("dati_campionato").doc("calendario").onSnapshot(function(doc){
+    calendarioData = (doc.exists && doc.data().partite) ? doc.data().partite : [];
+    calendarioLoaded = true;
+    if(currentSection==="calendario") renderRS(rsCurrentTab);
+    renderHomeNext(calendarioData);
+    renderHomeResults(calendarioData);
+  });
+  db.collection("dati_campionato").doc("classifica").onSnapshot(function(doc){
+    classificaData = (doc.exists && doc.data().rows) ? doc.data().rows : [];
+    classificaLoaded = true;
+    if(currentSection==="classifica") renderClassificaSection(classificaData);
+    renderHomeTable(classificaData);
+  });
 }
 
 function navTo(section){
@@ -379,8 +374,8 @@ function navTo(section){
   document.querySelectorAll(".nav-item").forEach(function(el){el.classList.toggle("active",el.dataset.section===section);});
   document.querySelectorAll(".section").forEach(function(el){el.classList.toggle("active",el.id==="sec-"+section);});
   document.querySelector(".scroll-area").scrollTop=0;
-  if(section==="calendario"){loadRS(rsCurrentTab);}
-  if(section==="classifica"){loadClassificaSection();}
+  if(section==="calendario"){renderRS(rsCurrentTab);}
+  if(section==="classifica"){renderClassificaSection(classificaData);}
   if(section==="rosa") renderRosa(giocatori);
 }
 
@@ -391,25 +386,17 @@ function goSection(tab){
     setTimeout(function(){
       document.querySelectorAll(".rs-tab").forEach(function(b){b.classList.remove("active");});
       document.getElementById("tab-risultati").classList.add("active");
-      loadRS("risultati");
+      renderRS("risultati");
     },50);
   } else if(tab==="classifica"){
     navTo("classifica");
   }
 }
 
-function loadClassificaSection(){
-  if(cachedClassifica){renderClassificaSection(cachedClassifica);return;}
-  document.getElementById("classifica-content").innerHTML='<div class="rs-loading">Caricamento...</div>';
-  fetch(PROXY+"?gir="+GIR+"&anno="+ANNO+"&tipo=classifica")
-    .then(function(r){return r.json();})
-    .then(function(json){
-      if(json.ok&&json.data){cachedClassifica=json.data;renderClassificaSection(json.data);}
-    }).catch(function(){});
-}
-
 function renderClassificaSection(data){
   var container=document.getElementById("classifica-content");
+  if(!classificaLoaded){ container.innerHTML='<div class="rs-loading">Caricamento...</div>'; return; }
+  if(!data.length){ container.innerHTML='<div class="rs-error">Classifica non ancora disponibile.</div>'; return; }
   var wrap=document.createElement("div");wrap.style.overflowX="auto";
   var tbl=document.createElement("table");tbl.className="classifica-table";
   var thead=document.createElement("thead");
@@ -426,26 +413,9 @@ function renderClassificaSection(data){
   tbl.appendChild(tbody);wrap.appendChild(tbl);container.innerHTML="";container.appendChild(wrap);
 }
 
-// Home data
-function loadHome(){
-  fetch(PROXY+"?gir="+GIR+"&anno="+ANNO+"&tipo=calendario")
-    .then(function(r){return r.json();})
-    .then(function(json){
-      if(json.ok&&json.data){
-        cachedCalendario=json.data;
-        renderHomeResults(json.data);
-        renderHomeNext(json.data);
-      }
-    }).catch(function(){});
-  fetch(PROXY+"?gir="+GIR+"&anno="+ANNO+"&tipo=classifica")
-    .then(function(r){return r.json();})
-    .then(function(json){
-      if(json.ok&&json.data){cachedClassifica=json.data;renderHomeTable(json.data);}
-    }).catch(function(){});
-}
-
 function renderHomeNext(data){
   var el=document.getElementById("home-next");
+  if(!calendarioLoaded){ el.innerHTML='<div class="next-card"><div style="color:var(--grey2);font-style:italic;font-size:13px">Caricamento...</div></div>'; return; }
   var scualoMatches=data.filter(function(m){return (m.casa+m.ospite).toLowerCase().indexOf("scual")>=0;});
   var next=scualoMatches.find(function(m){return !m.score;});
   if(!next){el.innerHTML='<div class="next-card"><div style="color:var(--grey2);font-size:13px;font-style:italic">Nessuna gara in programma</div></div>';return;}
@@ -454,6 +424,7 @@ function renderHomeNext(data){
 
 function renderHomeResults(data){
   var el=document.getElementById("home-results");
+  if(!calendarioLoaded){ el.innerHTML='<div style="color:var(--grey2);font-size:13px">Caricamento...</div>'; return; }
   var played=data.filter(function(m){return m.score&&(m.casa+m.ospite).toLowerCase().indexOf("scual")>=0;});
   played.reverse();
   var last3=played.slice(0,3);
@@ -475,6 +446,8 @@ function renderHomeResults(data){
 
 function renderHomeTable(data){
   var el=document.getElementById("home-table");
+  if(!classificaLoaded){ el.innerHTML='<div style="color:var(--grey2);font-size:13px">Caricamento...</div>'; return; }
+  if(!data.length){ el.innerHTML='<div style="color:var(--grey2);font-size:13px">Classifica non ancora disponibile</div>'; return; }
   var scualoIdx=data.findIndex(function(d){return d.team.toLowerCase().indexOf("scual")>=0;});
   var indices=[];
   for(var i=0;i<Math.min(3,data.length);i++) indices.push(i);
@@ -496,8 +469,6 @@ function renderHomeTable(data){
   });
   tbl.appendChild(tbody);el.innerHTML="";el.appendChild(tbl);
 }
-
-loadHome();
 </script>
 </body>
 </html>
