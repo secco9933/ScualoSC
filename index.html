@@ -46,7 +46,7 @@ body{overflow:hidden}
 .player-card-num{font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;color:var(--grey1);letter-spacing:1px}
 .player-card-name{font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:900;text-transform:uppercase;color:var(--white);line-height:1.1;margin-top:2px}
 .rs-tabs{display:flex;gap:8px;margin-bottom:16px}
-.rs-tab{flex:1;padding:9px 0;border-radius:7px;border:1px solid var(--grey3);background:transparent;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px}
+.rs-tab{flex:1;padding:9px 2px;border-radius:7px;border:1px solid var(--grey3);background:transparent;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px;white-space:nowrap}
 .rs-tab.active{background:var(--white);border-color:var(--white);color:var(--black)}
 .rs-loading{text-align:center;padding:30px;color:var(--grey1);font-size:13px}
 .rs-error{text-align:center;padding:20px;color:var(--grey1);font-size:12px;line-height:1.6}
@@ -159,6 +159,7 @@ body{overflow:hidden}
         <div class="rs-tabs">
           <button class="rs-tab active" id="tab-calendario" onclick="rsTab(this,'calendario')">Calendario</button>
           <button class="rs-tab" id="tab-risultati" onclick="rsTab(this,'risultati')">Risultati</button>
+          <button class="rs-tab" id="tab-recuperare" onclick="rsTab(this,'recuperare')">Da Recuperare</button>
         </div>
         <div id="rs-content"><div class="rs-loading">Caricamento...</div></div>
       </div>
@@ -227,9 +228,13 @@ function giornataNum(m){
 function renderRS(tab){
   var container = document.getElementById("rs-content");
   if(!calendarioLoaded){ container.innerHTML = '<div class="rs-loading">Caricamento...</div>'; return; }
-  var data = tab === "risultati" ? calendarioData.filter(function(m){return !!m.score;}) : calendarioData;
+  var data;
+  if(tab === "risultati") data = calendarioData.filter(function(m){return !!m.score;});
+  else if(tab === "recuperare") data = calendarioData.filter(function(m){return !!m.rinviata && !m.score;});
+  else data = calendarioData;
   if(!data.length){
-    container.innerHTML = '<div class="rs-error">'+(tab==="risultati"?"Nessun risultato disponibile.":"Calendario non ancora disponibile.")+'</div>';
+    var msg = tab==="risultati" ? "Nessun risultato disponibile." : (tab==="recuperare" ? "Nessuna gara da recuperare al momento." : "Calendario non ancora disponibile.");
+    container.innerHTML = '<div class="rs-error">'+msg+'</div>';
     return;
   }
   renderCalendario(data);
@@ -287,6 +292,7 @@ function renderCalendario(data){
       c.textContent=normalizeTeam(m.casa);row.appendChild(c);
       var mid=document.createElement("div");mid.className="rs-score";
       if(m.score){mid.textContent=m.score;}
+      else if(m.rinviata){mid.textContent="RINV.";mid.style.fontSize="10px";mid.style.color="#cc3333";mid.style.fontWeight="700";if(m.rinviataMotivo)mid.title=m.rinviataMotivo;}
       else{mid.textContent="vs";mid.style.fontSize="12px";mid.style.color="var(--grey2)";mid.style.fontWeight="400";}
       row.appendChild(mid);
       var o=document.createElement("div");
@@ -417,7 +423,7 @@ function renderHomeNext(data){
   var el=document.getElementById("home-next");
   if(!calendarioLoaded){ el.innerHTML='<div class="next-card"><div style="color:var(--grey2);font-style:italic;font-size:13px">Caricamento...</div></div>'; return; }
   var scualoMatches=data.filter(function(m){return (m.casa+m.ospite).toLowerCase().indexOf("scual")>=0;});
-  var next=scualoMatches.find(function(m){return !m.score;});
+  var next=scualoMatches.find(function(m){return !m.score && !m.rinviata;});
   if(!next){el.innerHTML='<div class="next-card"><div style="color:var(--grey2);font-size:13px;font-style:italic">Nessuna gara in programma</div></div>';return;}
   el.innerHTML='<div class="next-card"><div class="next-label">'+next.giornata+(next.data?' &mdash; '+next.data:'')+'</div><div class="next-teams"><div class="next-team'+(next.casa.toLowerCase().indexOf("scual")>=0?" scualo":"")+' ">'+normalizeTeam(next.casa)+'</div><div class="next-vs">VS</div><div class="next-team'+(next.ospite.toLowerCase().indexOf("scual")>=0?" scualo":"")+'">'+normalizeTeam(next.ospite)+'</div></div></div>';
 }
