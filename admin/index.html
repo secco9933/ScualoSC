@@ -1218,49 +1218,57 @@ function parseCalendarioLines(lines, yearFn) {
 }
 
 // ---- parsing comunicato (risultati + classifica) ----
+// Una partita rinviata può comparire sia nella sezione "Partite" della giornata
+// corrente (riga senza punteggio seguita da "- Rinviata" / "RINVIATA...") sia
+// nella sezione "Prossimi incontri" (stesso schema). Gestiamo entrambi i casi.
 function parseComunicatoLines(lines) {
-  var risultati = [], classifica = [], prossimi = [];
-  var curGiornataNum = 0, section = null, inProssimi = false, lastProssimo = null;
+  var risultati = [], classifica = [], nonGiocate = [];
+  var curGiornataNum = 0, section = null, inProssimi = false, lastMatch = null;
+  var rinviataRe = /^-?\s*Rinviata\b[\s:.,]*(.*)$/i;
+  var scoredRe = /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(\d+)\s*@@\s*(\d+)\s*$/;
+  var unscoredRe = /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(.+?)\s*$/;
   for (var i = 0; i < lines.length; i++) {
     var line = (lines[i] || "").trim();
     if (!line) continue;
     if (/^Classifica$/i.test(line)) { section = "classifica"; inProssimi = false; continue; }
-    if (/^Prossimi incontri$/i.test(line)) { section = null; inProssimi = true; lastProssimo = null; continue; }
+    if (/^Prossimi incontri$/i.test(line)) { section = null; inProssimi = true; lastMatch = null; continue; }
     if (/^Marcatori$/i.test(line) || /^Sanzioni$/i.test(line)) break;
     var mga = line.match(/^(\d+)\s*-\s*(Andata|Ritorno)$/i);
-    if (mga) { curGiornataNum = parseInt(mga[1]); section = inProssimi ? "prossimi" : "partite"; continue; }
+    if (mga) { curGiornataNum = parseInt(mga[1]); section = inProssimi ? "prossimi" : "partite"; lastMatch = null; continue; }
     if (/^P\.ti\s*@@/.test(line)) continue;
-    if (section === "prossimi") {
-      var mrin = line.match(/^RINVIATA\b\s*(.*)$/i);
+    if (section === "partite" || section === "prossimi") {
+      var mrin = line.match(rinviataRe);
       if (mrin) {
-        if (lastProssimo) { lastProssimo.rinviata = true; lastProssimo.rinviataMotivo = (mrin[1] || "").trim() || "Rinviata"; }
+        if (lastMatch) { lastMatch.rinviata = true; lastMatch.rinviataMotivo = (mrin[1] || "").trim() || "Rinviata"; }
         continue;
       }
-      var mu = line.match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(.+?)\s*$/);
+      var mm = section === "partite" ? line.match(scoredRe) : null;
+      if (mm) {
+        var casaRaw = mm[4].trim(), ospiteRaw = mm[5].trim();
+        var golCasa = parseInt(mm[6]), golOspite = parseInt(mm[7]);
+        lastMatch = {
+          giornataNum: curGiornataNum, giornata: curGiornataNum ? (curGiornataNum + "° Giornata") : "",
+          data: mm[1], ora: mm[2],
+          casa: matchTeam(casaRaw) || casaRaw, ospite: matchTeam(ospiteRaw) || ospiteRaw,
+          golCasa: golCasa, golOspite: golOspite, score: golCasa + "-" + golOspite,
+          rinviata: false, rinviataMotivo: ""
+        };
+        risultati.push(lastMatch);
+        continue;
+      }
+      var mu = line.match(unscoredRe);
       if (mu) {
         var cRaw = mu[4].trim(), oRaw = mu[5].trim();
-        lastProssimo = {
+        lastMatch = {
           giornataNum: curGiornataNum, data: mu[1], ora: mu[2],
           casa: matchTeam(cRaw) || cRaw, ospite: matchTeam(oRaw) || oRaw,
           rinviata: false, rinviataMotivo: ""
         };
-        prossimi.push(lastProssimo);
+        nonGiocate.push(lastMatch);
       }
       continue;
     }
-    if (section === "partite") {
-      var mm = line.match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(\d+)\s*@@\s*(\d+)\s*$/);
-      if (mm) {
-        var casaRaw = mm[4].trim(), ospiteRaw = mm[5].trim();
-        var golCasa = parseInt(mm[6]), golOspite = parseInt(mm[7]);
-        risultati.push({
-          giornataNum: curGiornataNum, giornata: curGiornataNum ? (curGiornataNum + "° Giornata") : "",
-          data: mm[1], ora: mm[2],
-          casa: matchTeam(casaRaw) || casaRaw, ospite: matchTeam(ospiteRaw) || ospiteRaw,
-          golCasa: golCasa, golOspite: golOspite, score: golCasa + "-" + golOspite
-        });
-      }
-    } else if (section === "classifica") {
+    if (section === "classifica") {
       var mc = line.match(/^(\d+)\s*@@\s*(.+?)\s*@@\s*(-?\d+)\s*@@\s*(-?\d+)\s*@@\s*(-?\d+)\s*@@\s*(-?\d+)\s*@@\s*(-?\d+)\s*@@\s*(-?\d+)\s*@@\s*(-?\d+)\s*@@\s*(-?\d+)\s*@@\s*(-?\d+)\s*$/);
       if (mc) {
         var teamRaw = mc[2].trim();
@@ -1273,7 +1281,7 @@ function parseComunicatoLines(lines) {
     }
   }
   classifica.sort(function(a, b) { return a.rank - b.rank; });
-  var rinviate = prossimi.filter(function(p) { return p.rinviata; });
+  var rinviate = nonGiocate.filter(function(p) { return p.rinviata; });
   return { risultati: risultati, classifica: classifica, rinviate: rinviate };
 }
 
