@@ -280,6 +280,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
       <div class="multe-tabs">
         <button class="multe-tab active" onclick="campTab(this,'calendario')">Calendario</button>
         <button class="multe-tab" onclick="campTab(this,'comunicato')">Comunicato</button>
+        <button class="multe-tab" onclick="campTab(this,'ammonizioni')">Ammonizioni</button>
       </div>
 
       <div id="camp-calendario-panel">
@@ -300,6 +301,11 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
           <button class="btn-primary" style="width:100%;justify-content:center" onclick="analizzaComunicatoPdf()">Analizza PDF</button>
         </div>
         <div id="com-preview"></div>
+      </div>
+
+      <div id="camp-ammonizioni-panel" style="display:none">
+        <div style="color:var(--grey1);font-size:12px;margin-bottom:12px;line-height:1.4">Ammonizioni e squalifiche dei nostri giocatori, aggiornate automaticamente ad ogni importazione di un comunicato (sezione "Sanzioni").</div>
+        <div id="ammonizioni-content"><div class="empty-state">Caricamento...</div></div>
       </div>
     </div>
 
@@ -465,6 +471,10 @@ function loadAllData() {
   });
   db.collection("dati_campionato").doc("classifica").onSnapshot(function(doc) {
     currentClassifica = (doc.exists && doc.data().rows) ? doc.data().rows : [];
+  });
+  db.collection("dati_campionato").doc("ammonizioni").onSnapshot(function(doc) {
+    currentAmmonizioni = (doc.exists && doc.data().log) ? doc.data().log : [];
+    if (currentSection === "campionato") renderAmmonizioni();
   });
 }
 
@@ -1081,6 +1091,7 @@ function generatePDF() {
 
 var currentCalendario = [];
 var currentClassifica = [];
+var currentAmmonizioni = [];
 var campCalParsed = [];
 var campComParsed = null;
 
@@ -1093,6 +1104,8 @@ function campTab(btn, tab) {
   btn.classList.add("active");
   document.getElementById("camp-calendario-panel").style.display = tab === "calendario" ? "block" : "none";
   document.getElementById("camp-comunicato-panel").style.display = tab === "comunicato" ? "block" : "none";
+  document.getElementById("camp-ammonizioni-panel").style.display = tab === "ammonizioni" ? "block" : "none";
+  if (tab === "ammonizioni") renderAmmonizioni();
 }
 
 // ---- estrazione testo PDF (pdf.js), ricostruendo le righe con colonne separate da " @@ " ----
@@ -1221,18 +1234,55 @@ function parseCalendarioLines(lines, yearFn) {
 // Una partita rinviata può comparire sia nella sezione "Partite" della giornata
 // corrente (riga senza punteggio seguita da "- Rinviata" / "RINVIATA...") sia
 // nella sezione "Prossimi incontri" (stesso schema). Gestiamo entrambi i casi.
+// Nome del nostro club come compare nella sezione "Sanzioni" dei comunicati
+// (diverso dal nome squadra usato altrove: lì è "POLISPORTIVA FONTANELLE 1964 A.S.D.")
+var NOSTRA_SQUADRA_SANZIONI = /FONTANELLE/i;
+function parseSanzioneMotivo(motivo) {
+  var res = { ammonizioni: null, squalificaGare: 0, tipo: "altro" };
+  var mAmm = motivo.match(/^(\d+)\s*ammonizion/i);
+  if (mAmm) { res.ammonizioni = parseInt(mAmm[1]); res.tipo = "ammonizione"; }
+  var mGara = motivo.match(/(\d+)\s*GARA/i);
+  if (mGara && /squalifica/i.test(motivo)) { res.squalificaGare = parseInt(mGara[1]); res.tipo = "squalifica-cumulo"; }
+  var mGiorn = motivo.match(/(\d+)\s*giornata/i);
+  if (mGiorn && res.ammonizioni === null) { res.squalificaGare = parseInt(mGiorn[1]); res.tipo = "espulsione"; }
+  return res;
+}
 function parseComunicatoLines(lines) {
-  var risultati = [], classifica = [], nonGiocate = [];
-  var curGiornataNum = 0, section = null, inProssimi = false, lastMatch = null;
+  var risultati = [], classifica = [], nonGiocate = [], sanzioni = [];
+  var curGiornataNum = 0, section = null, inProssimi = false, lastMatch = null, clubIsNostro = false;
+  var numeroComunicato = null, dataComunicato = null;
   var rinviataRe = /^-?\s*Rinviata\b[\s:.,]*(.*)$/i;
   var scoredRe = /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(\d+)\s*@@\s*(\d+)\s*$/;
   var unscoredRe = /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(.+?)\s*$/;
   for (var i = 0; i < lines.length; i++) {
     var line = (lines[i] || "").trim();
     if (!line) continue;
+    var mHead = line.match(/^Comunicato Ufficiale N\.\s*(\d+)\s*$/i);
+    if (mHead) { numeroComunicato = parseInt(mHead[1]); continue; }
+    var mDate = line.match(/^del\s+(\d{2}\/\d{2}\/\d{4})\s*$/i);
+    if (mDate && !dataComunicato) { dataComunicato = mDate[1]; continue; }
     if (/^Classifica$/i.test(line)) { section = "classifica"; inProssimi = false; continue; }
     if (/^Prossimi incontri$/i.test(line)) { section = null; inProssimi = true; lastMatch = null; continue; }
-    if (/^Marcatori$/i.test(line) || /^Sanzioni$/i.test(line)) break;
+    if (/^Marcatori$/i.test(line)) { section = "marcatori"; continue; }
+    if (/^Sanzioni$/i.test(line)) { section = "sanzioni"; clubIsNostro = false; continue; }
+    if (section === "sanzioni") {
+      var mclub = line.match(/^(.+?)\s*@@\s*P\.ti disciplina:\s*\d+\s*$/i);
+      if (mclub) { clubIsNostro = NOSTRA_SQUADRA_SANZIONI.test(mclub[1]); continue; }
+      if (clubIsNostro) {
+        var mplayer = line.match(/^(.+?)\s*\(([^)]*)\)\s*@@\s*(.+)$/);
+        if (mplayer) {
+          var nomeGiocatore = mplayer[1].trim(), motivo = mplayer[3].trim();
+          var pm = parseSanzioneMotivo(motivo);
+          sanzioni.push({
+            nome: nomeGiocatore, motivo: motivo,
+            ammonizioni: pm.ammonizioni, squalificaGare: pm.squalificaGare, tipo: pm.tipo,
+            comunicato: numeroComunicato, data: dataComunicato
+          });
+        }
+      }
+      continue;
+    }
+    if (section === "marcatori") continue;
     var mga = line.match(/^(\d+)\s*-\s*(Andata|Ritorno)$/i);
     if (mga) { curGiornataNum = parseInt(mga[1]); section = inProssimi ? "prossimi" : "partite"; lastMatch = null; continue; }
     if (/^P\.ti\s*@@/.test(line)) continue;
@@ -1282,7 +1332,7 @@ function parseComunicatoLines(lines) {
   }
   classifica.sort(function(a, b) { return a.rank - b.rank; });
   var rinviate = nonGiocate.filter(function(p) { return p.rinviata; });
-  return { risultati: risultati, classifica: classifica, rinviate: rinviate };
+  return { risultati: risultati, classifica: classifica, rinviate: rinviate, sanzioni: sanzioni, numeroComunicato: numeroComunicato, dataComunicato: dataComunicato };
 }
 
 // Il comunicato è autoritativo: se l'ordine casa/ospite non coincide con il
@@ -1407,6 +1457,16 @@ function renderComPreview() {
       html += '<div style="color:var(--grey2);font-size:10.5px;padding:2px 0 8px">' + r.rinviataMotivo + '</div>';
     });
   }
+  if (campComParsed.sanzioni.length) {
+    html += '<div class="roster-section-label" style="margin-top:16px">Ammonizioni/Squalifiche Scualo SC (' + campComParsed.sanzioni.length + ')</div>';
+    campComParsed.sanzioni.forEach(function(s) {
+      var isSqualifica = s.squalificaGare > 0;
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px">';
+      html += '<div>' + s.nome + '</div>';
+      html += '<div style="' + (isSqualifica ? 'color:var(--red);font-weight:700' : 'color:var(--grey1)') + ';text-align:right;font-size:11.5px">' + s.motivo + '</div>';
+      html += '</div>';
+    });
+  }
   html += '<div class="roster-section-label" style="margin-top:16px">Classifica (' + campComParsed.classifica.length + ' squadre)</div>';
   html += '<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">';
   campComParsed.classifica.forEach(function(c) {
@@ -1443,17 +1503,79 @@ function confermaImportComunicato() {
   });
   var ops = [db.collection("dati_campionato").doc("calendario").set({ partite: updated, updatedAt: new Date().toISOString() })];
   if (classificaRows.length) ops.push(db.collection("dati_campionato").doc("classifica").set({ rows: classificaRows, updatedAt: new Date().toISOString() }));
+  var nuoveSanzioni = 0;
+  if (campComParsed.sanzioni && campComParsed.sanzioni.length) {
+    var logAmmonizioni = (currentAmmonizioni || []).map(function(e) { return Object.assign({}, e); });
+    campComParsed.sanzioni.forEach(function(s) {
+      var giaPresente = logAmmonizioni.some(function(e) {
+        return e.comunicato === s.comunicato && e.nome === s.nome && e.motivo === s.motivo;
+      });
+      if (!giaPresente) {
+        logAmmonizioni.push({
+          nome: s.nome, motivo: s.motivo, ammonizioni: s.ammonizioni,
+          squalificaGare: s.squalificaGare, tipo: s.tipo,
+          comunicato: s.comunicato, data: s.data
+        });
+        nuoveSanzioni++;
+      }
+    });
+    if (nuoveSanzioni) {
+      ops.push(db.collection("dati_campionato").doc("ammonizioni").set({ log: logAmmonizioni, updatedAt: new Date().toISOString() }));
+    }
+  }
   Promise.all(ops).then(function() {
     var okCount = campComParsed.risultati.length - notFound;
     alert("Aggiornamento completato.\nRisultati aggiornati: " + okCount + "/" + campComParsed.risultati.length +
       (swapped ? ("\n(" + swapped + " con casa/trasferta corrette)") : "") +
       (notFound ? ("\n(" + notFound + " non trovati nel calendario)") : "") +
       (campComParsed.rinviate.length ? ("\nPartite rinviate segnalate: " + campComParsed.rinviate.length) : "") +
+      (nuoveSanzioni ? ("\nAmmonizioni/squalifiche registrate: " + nuoveSanzioni) : "") +
       "\nClassifica aggiornata: " + classificaRows.length + " squadre.");
     document.getElementById("com-preview").innerHTML = "";
     document.getElementById("com-file-input").value = "";
     campComParsed = null;
   }).catch(function(e) { alert("Errore durante il salvataggio: " + e.message); });
+}
+
+function renderAmmonizioni() {
+  var el = document.getElementById("ammonizioni-content");
+  if (!el) return;
+  var log = currentAmmonizioni || [];
+  if (!log.length) {
+    el.innerHTML = '<div class="empty-state">Nessuna ammonizione registrata. Importa un comunicato per aggiornare questa sezione.</div>';
+    return;
+  }
+  // Riepilogo per giocatore: usa l'ultimo record (per numero comunicato) come stato corrente
+  var byPlayer = {};
+  log.forEach(function(e) {
+    if (!byPlayer[e.nome]) byPlayer[e.nome] = [];
+    byPlayer[e.nome].push(e);
+  });
+  var players = Object.keys(byPlayer).sort(function(a, b) { return a.localeCompare(b); });
+  var html = '<div class="roster-section-label">Situazione giocatori (' + players.length + ')</div>';
+  players.forEach(function(nome) {
+    var recs = byPlayer[nome].slice().sort(function(a, b) { return (a.comunicato || 0) - (b.comunicato || 0); });
+    var last = recs[recs.length - 1];
+    var squalificato = last.squalificaGare > 0;
+    var ammCount = 0;
+    recs.forEach(function(r) { if (r.ammonizioni) ammCount = Math.max(ammCount, r.ammonizioni); });
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">';
+    html += '<div style="font-weight:600;font-size:13px">' + nome + '</div>';
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    if (ammCount) html += '<span style="font-size:11px;background:var(--amber-bg,#fff3cd);color:var(--amber,#8a6d00);padding:2px 8px;border-radius:10px;font-weight:600">' + ammCount + ' ammonizion' + (ammCount === 1 ? 'e' : 'i') + '</span>';
+    if (squalificato) html += '<span style="font-size:11px;background:var(--red-bg,#fde2e1);color:var(--red,#c0392b);padding:2px 8px;border-radius:10px;font-weight:700">Squalificato ' + last.squalificaGare + ' gara' + (last.squalificaGare === 1 ? '' : 'e') + '</span>';
+    html += '</div></div>';
+  });
+  html += '<div class="roster-section-label" style="margin-top:18px">Storico sanzioni (' + log.length + ')</div>';
+  var logSorted = log.slice().sort(function(a, b) { return (b.comunicato || 0) - (a.comunicato || 0); });
+  logSorted.forEach(function(e) {
+    var isSqualifica = e.squalificaGare > 0;
+    html += '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px">';
+    html += '<div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:600">' + e.nome + '</span><span style="color:var(--grey2);font-size:11px;white-space:nowrap">Com. n.' + (e.comunicato != null ? e.comunicato : "?") + (e.data ? (" del " + e.data) : "") + '</span></div>';
+    html += '<div style="' + (isSqualifica ? 'color:var(--red);font-weight:600' : 'color:var(--grey1)') + ';margin-top:2px">' + e.motivo + '</div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
 }
 
 </script>
