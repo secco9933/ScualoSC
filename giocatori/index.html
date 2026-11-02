@@ -202,6 +202,12 @@ body{overflow:hidden}
         <div id="multeListPagina"><div class="empty-state">Caricamento...</div></div>
       </div>
     </div>
+    <div class="section" id="sec-ammonizioni">
+      <div class="inner">
+        <div class="page-title">Ammonizioni</div>
+        <div id="ammonizioniContentPagina"><div class="empty-state">Caricamento...</div></div>
+      </div>
+    </div>
   </div>
   <nav class="bottom-nav">
     <button class="nav-item active" data-section="rosa" onclick="navTo('rosa')">
@@ -211,6 +217,10 @@ body{overflow:hidden}
     <button class="nav-item" data-section="multe" onclick="navTo('multe')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
       <span class="nav-label">Multe</span>
+    </button>
+    <button class="nav-item" data-section="ammonizioni" onclick="navTo('ammonizioni')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="18" rx="1.5" transform="rotate(8 12 11)"/></svg>
+      <span class="nav-label">Ammonizioni</span>
     </button>
   </nav>
 </div>
@@ -399,6 +409,7 @@ var pmCurrentGiocatoreId = null;
 var pmCurrentTab = "pendenti";
 var currentSection = "rosa";
 var currentMulteTabPagina = "pendenti";
+var currentAmmonizioni = [];
 var db = null;
 
 function navTo(section){
@@ -408,6 +419,7 @@ function navTo(section){
   document.querySelector(".scroll-area").scrollTop=0;
   if(section==="rosa") renderRosa(giocatori);
   if(section==="multe") renderMultePagina();
+  if(section==="ammonizioni") renderAmmonizioniPagina();
 }
 function multeTabPagina(btn,tab){
   currentMulteTabPagina=tab;
@@ -479,7 +491,48 @@ function initApp(){
       if(pmCurrentGiocatoreId) renderPlayerMulte();
       if(currentSection==="multe") renderMultePagina();
     });
+    db.collection("dati_campionato").doc("ammonizioni").onSnapshot(function(doc){
+      currentAmmonizioni=(doc.exists&&doc.data().log)?doc.data().log:[];
+      if(currentSection==="ammonizioni") renderAmmonizioniPagina();
+    });
   }
+}
+
+function renderAmmonizioniPagina(){
+  var el=document.getElementById("ammonizioniContentPagina");
+  if(!el) return;
+  var log=currentAmmonizioni||[];
+  if(!log.length){
+    el.innerHTML='<div class="empty-state">Nessuna ammonizione registrata.</div>';
+    return;
+  }
+  var byPlayer={};
+  log.forEach(function(e){ if(!byPlayer[e.nome]) byPlayer[e.nome]=[]; byPlayer[e.nome].push(e); });
+  var players=Object.keys(byPlayer).sort(function(a,b){return a.localeCompare(b);});
+  var html='<div class="roster-section-label">Situazione giocatori ('+players.length+')</div>';
+  players.forEach(function(nome){
+    var recs=byPlayer[nome].slice().sort(function(a,b){return (a.comunicato||0)-(b.comunicato||0);});
+    var last=recs[recs.length-1];
+    var squalificato=last.squalificaGare>0;
+    var ammCount=0;
+    recs.forEach(function(r){ if(r.ammonizioni) ammCount=Math.max(ammCount,r.ammonizioni); });
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">';
+    html+='<div style="font-weight:600;font-size:13px">'+nome+'</div>';
+    html+='<div style="display:flex;align-items:center;gap:8px">';
+    if(ammCount) html+='<span style="font-size:11px;background:var(--amber-bg,#fff3cd);color:var(--amber,#8a6d00);padding:2px 8px;border-radius:10px;font-weight:600">'+ammCount+' ammonizion'+(ammCount===1?'e':'i')+'</span>';
+    if(squalificato) html+='<span style="font-size:11px;background:var(--red-bg,#fde2e1);color:var(--red,#c0392b);padding:2px 8px;border-radius:10px;font-weight:700">Squalificato '+last.squalificaGare+' gara'+(last.squalificaGare===1?'':'e')+'</span>';
+    html+='</div></div>';
+  });
+  html+='<div class="roster-section-label" style="margin-top:18px">Storico sanzioni ('+log.length+')</div>';
+  var logSorted=log.slice().sort(function(a,b){return (b.comunicato||0)-(a.comunicato||0);});
+  logSorted.forEach(function(e){
+    var isSqualifica=e.squalificaGare>0;
+    html+='<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px">';
+    html+='<div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:600">'+e.nome+'</span><span style="color:var(--grey2);font-size:11px;white-space:nowrap">Com. n.'+(e.comunicato!=null?e.comunicato:"?")+(e.data?(" del "+e.data):"")+'</span></div>';
+    html+='<div style="'+(isSqualifica?'color:var(--red,#c0392b);font-weight:600':'color:var(--grey1)')+';margin-top:2px">'+e.motivo+'</div>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
 }
 
 function openPlayerMulte(giocatoreId,nome){
