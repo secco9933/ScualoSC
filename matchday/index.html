@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Scualo SC — Matchday</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+:root{--black:#0a0a0a;--black2:#111111;--black3:#1a1a1a;--black4:#222222;--black5:#2e2e2e;--white:#ffffff;--grey1:#888888;--grey2:#555555;--grey3:#333333;--border:rgba(255,255,255,0.09);--radius:10px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+html,body{height:100%;background:var(--black);color:var(--white);font-family:"Barlow",sans-serif}
+body{overflow:hidden}
+#app{display:flex;flex-direction:column;height:100%}
+.topbar{background:var(--black2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:11px;flex-shrink:0;z-index:10}
+.topbar-title{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:var(--white)}
+.topbar-title span{display:block;font-size:9px;font-weight:400;color:var(--grey1);letter-spacing:1.5px;margin-top:-2px;font-family:"Barlow",sans-serif;text-transform:uppercase}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden}
+.scroll-area::-webkit-scrollbar{width:0}
+.inner{padding:14px 16px 40px;max-width:520px;margin:0 auto}
+.empty-state{text-align:center;padding:40px 0;color:var(--grey2);font-size:13px;font-style:italic}
+.roster-section-label{font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--grey1);padding:14px 0 8px;border-bottom:1px solid var(--border);margin-bottom:10px}
+.field-input{width:100%;background:var(--black2);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:"Barlow",sans-serif;font-size:13px;padding:9px 12px;outline:none}
+.field-input::placeholder{color:var(--grey2)}
+.btn-primary{background:var(--white);color:var(--black);border:none;border-radius:8px;padding:11px 16px;font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+
+/* Login */
+.login-screen{position:fixed;inset:0;background:var(--black);display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-screen.hidden{display:none}
+.login-box{text-align:center;padding:20px}
+.login-title{font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:900;letter-spacing:2px;margin-bottom:4px}
+.login-sub{font-size:11px;color:var(--grey1);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:26px}
+.pin-display{font-size:28px;letter-spacing:10px;height:36px;margin-bottom:22px;color:var(--white)}
+.pin-grid{display:grid;grid-template-columns:repeat(3,64px);gap:14px;justify-content:center}
+.pin-btn{width:64px;height:64px;border-radius:50%;background:var(--black3);border:1px solid var(--grey3);color:var(--white);font-size:20px;font-family:"Barlow Condensed",sans-serif;font-weight:700;cursor:pointer}
+.pin-btn.delete,.pin-btn.enter{font-size:12px;letter-spacing:1px;background:none;border:none}
+.pin-error{color:#e05555;font-size:12px;margin-top:16px;height:16px}
+
+/* Formation picker */
+.modulo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.modulo-btn{background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-align:center}
+.modulo-btn.active{background:var(--white);color:var(--black);border-color:var(--white)}
+
+/* Pitch */
+.pitch-wrap{position:relative;width:100%;max-width:400px;margin:0 auto;aspect-ratio:2/3;border-radius:12px;overflow:hidden;border:2px solid rgba(255,255,255,0.18);background:repeating-linear-gradient(to bottom,#1f6e34 0%,#1f6e34 10%,#236f38 10%,#236f38 20%)}
+.pitch-lines{position:absolute;inset:0;width:100%;height:100%}
+.pitch-slot{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;z-index:2;width:62px}
+.pitch-slot-circle{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.5);border:2px solid rgba(255,255,255,0.65);display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:11px;color:rgba(255,255,255,0.85);flex-shrink:0;margin:0 auto}
+.pitch-slot.filled .pitch-slot-circle{background:var(--white);color:var(--black);border-color:var(--white);font-size:14px}
+.pitch-slot-name{font-size:9.5px;color:var(--white);font-weight:700;max-width:62px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,0.9)}
+
+/* Bench */
+.bench-list{display:flex;flex-direction:column;gap:8px}
+.bench-chip{display:flex;align-items:center;gap:10px;background:var(--black3);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px}
+.bench-chip-num{width:26px;height:26px;border-radius:50%;background:var(--black4);display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:12px;color:var(--grey1);flex-shrink:0}
+.bench-chip-name{flex:1;font-size:13px;font-weight:600}
+.bench-chip-remove{width:26px;height:26px;border-radius:50%;background:none;border:1px solid var(--grey3);color:var(--grey1);cursor:pointer;font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.bench-add{border:1px dashed var(--grey3);background:none;color:var(--grey1);border-radius:var(--radius);padding:11px;font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:1px;text-align:center}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;justify-content:center;z-index:500}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--black2);border:1px solid var(--grey3);border-radius:18px 18px 0 0;width:100%;max-width:500px;padding:18px 18px 34px;max-height:80vh;display:flex;flex-direction:column}
+.modal-handle{width:36px;height:4px;background:var(--grey3);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;letter-spacing:1px;margin-bottom:12px}
+.pick-list{overflow-y:auto;margin-top:12px;flex:1}
+.pick-item{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer}
+.pick-item.clear{color:#e05555}
+.pick-item.disabled{opacity:0.35;pointer-events:none}
+.pick-num{width:28px;height:28px;border-radius:50%;background:var(--black3);display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:12px;color:var(--grey1);flex-shrink:0}
+.pick-name{font-size:14px;font-weight:600}
+.modal-actions{display:flex;gap:10px;margin-top:14px}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-title">MATCHDAY</div>
+    <div class="login-sub">Scualo SC</div>
+    <div class="pin-display" id="pinDisplay">&#8203;</div>
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="addPin('1')">1</button>
+      <button class="pin-btn" onclick="addPin('2')">2</button>
+      <button class="pin-btn" onclick="addPin('3')">3</button>
+      <button class="pin-btn" onclick="addPin('4')">4</button>
+      <button class="pin-btn" onclick="addPin('5')">5</button>
+      <button class="pin-btn" onclick="addPin('6')">6</button>
+      <button class="pin-btn" onclick="addPin('7')">7</button>
+      <button class="pin-btn" onclick="addPin('8')">8</button>
+      <button class="pin-btn" onclick="addPin('9')">9</button>
+      <button class="pin-btn delete" onclick="delPin()">&#9003;</button>
+      <button class="pin-btn" onclick="addPin('0')">0</button>
+      <button class="pin-btn enter" onclick="checkPin()">ENTRA</button>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div class="topbar-title">MATCHDAY<span>Scualo SC</span></div>
+  </div>
+  <div class="scroll-area">
+    <div class="inner">
+      <div class="roster-section-label">Modulo</div>
+      <div class="modulo-grid" id="moduloGrid"></div>
+
+      <div id="pitchSection" style="display:none">
+        <div class="pitch-wrap" id="pitchWrap">
+          <svg class="pitch-lines" viewBox="0 0 100 150" preserveAspectRatio="none">
+            <rect x="3" y="3" width="94" height="144" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+            <line x1="3" y1="75" x2="97" y2="75" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+            <circle cx="50" cy="75" r="13" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+            <circle cx="50" cy="75" r="0.8" fill="rgba(255,255,255,0.35)"/>
+            <rect x="20" y="3" width="60" height="24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+            <rect x="36" y="3" width="28" height="8" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+            <circle cx="50" cy="19" r="0.8" fill="rgba(255,255,255,0.35)"/>
+            <rect x="41" y="0" width="18" height="3" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+            <rect x="20" y="123" width="60" height="24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+            <rect x="36" y="139" width="28" height="8" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+            <circle cx="50" cy="131" r="0.8" fill="rgba(255,255,255,0.35)"/>
+            <rect x="41" y="147" width="18" height="3" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+          </svg>
+          <div id="pitchSlots"></div>
+        </div>
+
+        <div class="roster-section-label" style="margin-top:22px">Panchina</div>
+        <div class="bench-list" id="benchList"></div>
+        <button class="bench-add" style="width:100%;margin-top:10px" onclick="openPicker('panchina',null)">+ Aggiungi in panchina</button>
+
+        <button class="btn-primary" style="width:100%;margin-top:24px" onclick="salvaFormazione()">Salva Formazione</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalPick" onclick="if(event.target===this)closePicker()">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="pickTitle">Seleziona giocatore</div>
+    <input class="field-input" id="pickSearch" placeholder="Cerca giocatore..." oninput="renderPickList()">
+    <div class="pick-list" id="pickList"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" style="background:var(--black3);color:var(--white);width:100%" onclick="closePicker()">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var PIN = "2026";
+var pinInput = "";
+var db = null;
+var giocatori = [];
+
+function addPin(d){ if(pinInput.length<6){ pinInput+=d; updateDisplay(); } }
+function delPin(){ pinInput=pinInput.slice(0,-1); updateDisplay(); document.getElementById("pinError").textContent=""; }
+function updateDisplay(){ document.getElementById("pinDisplay").textContent=pinInput.replace(/./g,"●")||"​"; }
+function checkPin(){
+  if(pinInput===PIN){
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("app").style.display="flex";
+    document.getElementById("app").style.flexDirection="column";
+    document.getElementById("app").style.height="100%";
+    initApp();
+  } else {
+    document.getElementById("pinError").textContent="Codice errato";
+    pinInput=""; updateDisplay();
+    setTimeout(function(){document.getElementById("pinError").textContent="";},2000);
+  }
+}
+
+// FORMAZIONI: ogni modulo è un array di 11 slot {id,role,label,x,y}
+// x,y in percentuale (0-100) rispetto al campo; y=0 porta avversaria (attacco), y=100 nostra porta (difesa)
+var FORMAZIONI = {
+  "4-3-3": [
+    {id:"por",role:"POR",label:"Portiere",x:50,y:92},
+    {id:"td", role:"TD", label:"Terzino Destro",x:84,y:74},
+    {id:"dcd",role:"DC", label:"Difensore Centrale",x:62,y:80},
+    {id:"dcs",role:"DC", label:"Difensore Centrale",x:38,y:80},
+    {id:"ts", role:"TS", label:"Terzino Sinistro",x:16,y:74},
+    {id:"ccd",role:"CC", label:"Centrocampista",x:72,y:53},
+    {id:"ccc",role:"CC", label:"Centrocampista",x:50,y:58},
+    {id:"ccs",role:"CC", label:"Centrocampista",x:28,y:53},
+    {id:"ad", role:"AD", label:"Ala Destra",x:82,y:20},
+    {id:"att",role:"ATT",label:"Attaccante",x:50,y:12},
+    {id:"as", role:"AS", label:"Ala Sinistra",x:18,y:20}
+  ],
+  "4-2-3-1": [
+    {id:"por",role:"POR",label:"Portiere",x:50,y:92},
+    {id:"td", role:"TD", label:"Terzino Destro",x:84,y:74},
+    {id:"dcd",role:"DC", label:"Difensore Centrale",x:62,y:80},
+    {id:"dcs",role:"DC", label:"Difensore Centrale",x:38,y:80},
+    {id:"ts", role:"TS", label:"Terzino Sinistro",x:16,y:74},
+    {id:"cdcd",role:"CDC",label:"Mediano",x:63,y:58},
+    {id:"cdcs",role:"CDC",label:"Mediano",x:37,y:58},
+    {id:"ed", role:"ED", label:"Esterno Destro",x:82,y:36},
+    {id:"trq",role:"TRQ",label:"Trequartista",x:50,y:32},
+    {id:"es", role:"ES", label:"Esterno Sinistro",x:18,y:36},
+    {id:"att",role:"ATT",label:"Attaccante",x:50,y:13}
+  ],
+  "4-4-2": [
+    {id:"por",role:"POR",label:"Portiere",x:50,y:92},
+    {id:"td", role:"TD", label:"Terzino Destro",x:84,y:74},
+    {id:"dcd",role:"DC", label:"Difensore Centrale",x:62,y:80},
+    {id:"dcs",role:"DC", label:"Difensore Centrale",x:38,y:80},
+    {id:"ts", role:"TS", label:"Terzino Sinistro",x:16,y:74},
+    {id:"ed", role:"ED", label:"Esterno Destro",x:85,y:50},
+    {id:"ccd",role:"CC", label:"Centrocampista",x:63,y:53},
+    {id:"ccs",role:"CC", label:"Centrocampista",x:37,y:53},
+    {id:"es", role:"ES", label:"Esterno Sinistro",x:15,y:50},
+    {id:"attd",role:"ATT",label:"Attaccante",x:63,y:18},
+    {id:"atts",role:"ATT",label:"Attaccante",x:37,y:18}
+  ],
+  "3-5-2": [
+    {id:"por",role:"POR",label:"Portiere",x:50,y:92},
+    {id:"dcd",role:"DC", label:"Difensore Centrale",x:70,y:79},
+    {id:"dcc",role:"DC", label:"Difensore Centrale",x:50,y:82},
+    {id:"dcs",role:"DC", label:"Difensore Centrale",x:30,y:79},
+    {id:"ed", role:"ED", label:"Esterno Destro",x:88,y:49},
+    {id:"ccd",role:"CC", label:"Centrocampista",x:67,y:54},
+    {id:"ccc",role:"CC", label:"Centrocampista",x:50,y:58},
+    {id:"ccs",role:"CC", label:"Centrocampista",x:33,y:54},
+    {id:"es", role:"ES", label:"Esterno Sinistro",x:12,y:49},
+    {id:"attd",role:"ATT",label:"Attaccante",x:65,y:18},
+    {id:"atts",role:"ATT",label:"Attaccante",x:35,y:18}
+  ],
+  "3-4-2-1": [
+    {id:"por",role:"POR",label:"Portiere",x:50,y:92},
+    {id:"dcd",role:"DC", label:"Difensore Centrale",x:70,y:79},
+    {id:"dcc",role:"DC", label:"Difensore Centrale",x:50,y:82},
+    {id:"dcs",role:"DC", label:"Difensore Centrale",x:30,y:79},
+    {id:"ed", role:"ED", label:"Esterno Destro",x:85,y:51},
+    {id:"ccd",role:"CC", label:"Centrocampista",x:62,y:54},
+    {id:"ccs",role:"CC", label:"Centrocampista",x:38,y:54},
+    {id:"es", role:"ES", label:"Esterno Sinistro",x:15,y:51},
+    {id:"trqd",role:"TRQ",label:"Trequartista",x:65,y:30},
+    {id:"trqs",role:"TRQ",label:"Trequartista",x:35,y:30},
+    {id:"att",role:"ATT",label:"Attaccante",x:50,y:13}
+  ],
+  "4-3-2-1": [
+    {id:"por",role:"POR",label:"Portiere",x:50,y:92},
+    {id:"td", role:"TD", label:"Terzino Destro",x:84,y:74},
+    {id:"dcd",role:"DC", label:"Difensore Centrale",x:62,y:80},
+    {id:"dcs",role:"DC", label:"Difensore Centrale",x:38,y:80},
+    {id:"ts", role:"TS", label:"Terzino Sinistro",x:16,y:74},
+    {id:"ccd",role:"CC", label:"Centrocampista",x:74,y:53},
+    {id:"ccc",role:"CC", label:"Centrocampista",x:50,y:57},
+    {id:"ccs",role:"CC", label:"Centrocampista",x:26,y:53},
+    {id:"trqd",role:"TRQ",label:"Trequartista",x:63,y:31},
+    {id:"trqs",role:"TRQ",label:"Trequartista",x:37,y:31},
+    {id:"att",role:"ATT",label:"Attaccante",x:50,y:13}
+  ]
+};
+
+var selectedFormazione = null;
+var titolari = {};  // slotId -> giocatoreId
+var panchina = [];  // array di giocatoreId
+var pickCtx = null; // {type:'titolare'|'panchina', slotId, benchIndex}
+
+function initApp(){
+  try{
+    firebase.initializeApp({apiKey:"AIzaSyCNpd3eUV7--Roa5QxdwdM9-HfbmPIbIPc",authDomain:"scualosc-43817.firebaseapp.com",projectId:"scualosc-43817",storageBucket:"scualosc-43817.firebasestorage.app",messagingSenderId:"644097253151",appId:"1:644097253151:web:a29a52cca556a99a27da2a"});
+    db=firebase.firestore();
+  }catch(e){}
+  renderModuloGrid();
+  if(!db) return;
+  db.collection("giocatori").orderBy("cognome").get().then(function(snap){
+    giocatori = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; }).filter(function(g){ return g.ruolo !== "dirigente"; });
+    return db.collection("matchday").doc("current").get();
+  }).then(function(doc){
+    if(doc && doc.exists){
+      var data = doc.data();
+      if(data.formazione && FORMAZIONI[data.formazione]){
+        selectedFormazione = data.formazione;
+        titolari = {};
+        (data.titolari||[]).forEach(function(t){
+          if(t.giocatoreId && giocatori.some(function(g){return g.id===t.giocatoreId;})) titolari[t.slotId]=t.giocatoreId;
+        });
+        panchina = (data.panchina||[]).map(function(p){return p.giocatoreId;}).filter(function(id){
+          return giocatori.some(function(g){return g.id===id;});
+        });
+      }
+    }
+    renderModuloGrid();
+    if(selectedFormazione){ renderPitch(); document.getElementById("pitchSection").style.display="block"; }
+    renderBench();
+  }).catch(function(e){ console.error(e); });
+}
+
+function renderModuloGrid(){
+  var grid = document.getElementById("moduloGrid");
+  grid.innerHTML = "";
+  Object.keys(FORMAZIONI).forEach(function(key){
+    var btn = document.createElement("button");
+    btn.className = "modulo-btn" + (selectedFormazione===key ? " active" : "");
+    btn.textContent = key;
+    btn.onclick = function(){ selectFormazione(key); };
+    grid.appendChild(btn);
+  });
+}
+
+function selectFormazione(key){
+  if(selectedFormazione===key) return;
+  var haAssegnazioni = Object.keys(titolari).length>0 || panchina.length>0;
+  if(haAssegnazioni){
+    if(!confirm("Cambiando modulo perderai i giocatori già posizionati. Continuare?")) return;
+  }
+  selectedFormazione = key;
+  titolari = {};
+  panchina = [];
+  renderModuloGrid();
+  renderPitch();
+  renderBench();
+  document.getElementById("pitchSection").style.display = "block";
+}
+
+function giocatoreLabel(g){
+  return (g.numero ? g.numero+". " : "") + (g.cognome||"") + " " + (g.nome||"");
+}
+
+function renderPitch(){
+  var cont = document.getElementById("pitchSlots");
+  cont.innerHTML = "";
+  var slots = FORMAZIONI[selectedFormazione] || [];
+  slots.forEach(function(slot){
+    var gid = titolari[slot.id];
+    var g = gid ? giocatori.find(function(x){return x.id===gid;}) : null;
+    var wrap = document.createElement("div");
+    wrap.className = "pitch-slot" + (g ? " filled" : "");
+    wrap.style.left = slot.x + "%";
+    wrap.style.top = slot.y + "%";
+    wrap.onclick = function(){ openPicker("titolare", slot.id); };
+    var circle = document.createElement("div");
+    circle.className = "pitch-slot-circle";
+    circle.textContent = g ? (g.numero || "?") : slot.role;
+    wrap.appendChild(circle);
+    var name = document.createElement("div");
+    name.className = "pitch-slot-name";
+    name.textContent = g ? (g.cognome||"") : slot.label;
+    wrap.appendChild(name);
+    cont.appendChild(wrap);
+  });
+}
+
+function renderBench(){
+  var list = document.getElementById("benchList");
+  list.innerHTML = "";
+  if(!panchina.length){
+    var e = document.createElement("div");
+    e.className = "empty-state";
+    e.style.padding = "16px 0";
+    e.textContent = "Nessun sostituto in panchina";
+    list.appendChild(e);
+    return;
+  }
+  panchina.forEach(function(gid, idx){
+    var g = giocatori.find(function(x){return x.id===gid;});
+    var chip = document.createElement("div");
+    chip.className = "bench-chip";
+    var num = document.createElement("div");
+    num.className = "bench-chip-num";
+    num.textContent = g ? (g.numero || "-") : "-";
+    chip.appendChild(num);
+    var nm = document.createElement("div");
+    nm.className = "bench-chip-name";
+    nm.textContent = g ? (g.cognome+" "+g.nome) : "Giocatore non trovato";
+    chip.onclick = function(){ openPicker("panchina", null, idx); };
+    chip.appendChild(nm);
+    var rm = document.createElement("button");
+    rm.className = "bench-chip-remove";
+    rm.textContent = "✕";
+    rm.onclick = function(ev){ ev.stopPropagation(); panchina.splice(idx,1); renderBench(); };
+    chip.appendChild(rm);
+    list.appendChild(chip);
+  });
+}
+
+function assegnatiAltrove(giocatoreId, exclude){
+  var inTitolari = Object.keys(titolari).some(function(sid){
+    return titolari[sid]===giocatoreId && sid!==(exclude&&exclude.slotId);
+  });
+  var inPanchina = panchina.some(function(id,idx){
+    return id===giocatoreId && idx!==(exclude&&exclude.benchIndex);
+  });
+  return inTitolari || inPanchina;
+}
+
+function openPicker(type, slotId, benchIndex){
+  pickCtx = {type:type, slotId:slotId, benchIndex:(typeof benchIndex==="number"?benchIndex:null)};
+  document.getElementById("pickTitle").textContent = type==="titolare" ?
+    ("Seleziona: " + (FORMAZIONI[selectedFormazione].find(function(s){return s.id===slotId;})||{}).label) :
+    "Aggiungi in panchina";
+  document.getElementById("pickSearch").value = "";
+  renderPickList();
+  document.getElementById("modalPick").classList.add("open");
+}
+function closePicker(){
+  document.getElementById("modalPick").classList.remove("open");
+  pickCtx = null;
+}
+function renderPickList(){
+  if(!pickCtx) return;
+  var q = (document.getElementById("pickSearch").value||"").toLowerCase();
+  var list = document.getElementById("pickList");
+  list.innerHTML = "";
+
+  var currentlyAssigned = pickCtx.type==="titolare" ? titolari[pickCtx.slotId] :
+    (pickCtx.benchIndex!=null ? panchina[pickCtx.benchIndex] : null);
+
+  if(currentlyAssigned){
+    var clearItem = document.createElement("div");
+    clearItem.className = "pick-item clear";
+    clearItem.innerHTML = '<div class="pick-num">✕</div><div class="pick-name">Lascia vuoto / rimuovi</div>';
+    clearItem.onclick = function(){
+      if(pickCtx.type==="titolare") delete titolari[pickCtx.slotId];
+      else if(pickCtx.benchIndex!=null) panchina.splice(pickCtx.benchIndex,1);
+      closePicker(); renderPitch(); renderBench();
+    };
+    list.appendChild(clearItem);
+  }
+
+  giocatori.filter(function(g){
+    var txt = ((g.nome||"")+" "+(g.cognome||"")).toLowerCase();
+    return !q || txt.indexOf(q)>=0 || String(g.numero||"").indexOf(q)>=0;
+  }).forEach(function(g){
+    var disabled = assegnatiAltrove(g.id, pickCtx);
+    var item = document.createElement("div");
+    item.className = "pick-item" + (disabled ? " disabled" : "");
+    var num = document.createElement("div");
+    num.className = "pick-num";
+    num.textContent = g.numero || "-";
+    item.appendChild(num);
+    var nm = document.createElement("div");
+    nm.className = "pick-name";
+    nm.textContent = g.cognome + " " + g.nome;
+    item.appendChild(nm);
+    if(!disabled){
+      item.onclick = function(){
+        if(pickCtx.type==="titolare"){
+          titolari[pickCtx.slotId] = g.id;
+        } else if(pickCtx.benchIndex!=null){
+          panchina[pickCtx.benchIndex] = g.id;
+        } else {
+          panchina.push(g.id);
+        }
+        closePicker(); renderPitch(); renderBench();
+      };
+    }
+    list.appendChild(item);
+  });
+
+  if(!giocatori.length){
+    var e = document.createElement("div");
+    e.className = "empty-state";
+    e.textContent = "Nessun giocatore in rosa";
+    list.appendChild(e);
+  }
+}
+
+function salvaFormazione(){
+  if(!db || !selectedFormazione) { alert("Seleziona prima un modulo."); return; }
+  var slots = FORMAZIONI[selectedFormazione];
+  var titolariOut = slots.map(function(slot){
+    var gid = titolari[slot.id];
+    var g = gid ? giocatori.find(function(x){return x.id===gid;}) : null;
+    return {
+      slotId: slot.id, role: slot.role, label: slot.label, x: slot.x, y: slot.y,
+      giocatoreId: gid || null,
+      nome: g ? g.nome : null, cognome: g ? g.cognome : null, numero: g ? g.numero : null
+    };
+  });
+  var panchinaOut = panchina.map(function(gid){
+    var g = giocatori.find(function(x){return x.id===gid;});
+    return { giocatoreId: gid, nome: g ? g.nome : null, cognome: g ? g.cognome : null, numero: g ? g.numero : null };
+  });
+  var mancanti = titolariOut.filter(function(t){return !t.giocatoreId;}).length;
+  db.collection("matchday").doc("current").set({
+    formazione: selectedFormazione,
+    titolari: titolariOut,
+    panchina: panchinaOut,
+    updatedAt: new Date().toISOString()
+  }).then(function(){
+    alert("Formazione salvata." + (mancanti ? ("\n(" + mancanti + " posizioni ancora da assegnare)") : ""));
+  }).catch(function(e){
+    alert("Errore durante il salvataggio: " + e.message);
+  });
+}
+</script>
+</body>
+</html>
