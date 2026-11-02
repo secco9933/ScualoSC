@@ -280,7 +280,6 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
       <div class="multe-tabs">
         <button class="multe-tab active" onclick="campTab(this,'calendario')">Calendario</button>
         <button class="multe-tab" onclick="campTab(this,'comunicato')">Comunicato</button>
-        <button class="multe-tab" onclick="campTab(this,'ammonizioni')">Ammonizioni</button>
       </div>
 
       <div id="camp-calendario-panel">
@@ -302,11 +301,14 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
         </div>
         <div id="com-preview"></div>
       </div>
+    </div>
 
-      <div id="camp-ammonizioni-panel" style="display:none">
-        <div style="color:var(--grey1);font-size:12px;margin-bottom:12px;line-height:1.4">Ammonizioni e squalifiche dei nostri giocatori, aggiornate automaticamente ad ogni importazione di un comunicato (sezione "Sanzioni").</div>
-        <div id="ammonizioni-content"><div class="empty-state">Caricamento...</div></div>
+    <div class="section" id="sec-ammonizioni">
+      <div class="sec-header">
+        <div class="sec-title">Ammonizioni</div>
       </div>
+      <div style="color:var(--grey1);font-size:12px;margin-bottom:12px;line-height:1.4">Ammonizioni e squalifiche dei nostri giocatori, aggiornate automaticamente ad ogni importazione di un comunicato (sezione "Sanzioni").</div>
+      <div id="ammonizioni-content"><div class="empty-state">Caricamento...</div></div>
     </div>
 
   </div>
@@ -331,6 +333,10 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
     <button class="nav-item" data-section="campionato" onclick="navTo('campionato')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span class="nav-label">Campionato</span>
+    </button>
+    <button class="nav-item" data-section="ammonizioni" onclick="navTo('ammonizioni')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="18" rx="1.5" transform="rotate(8 12 11)"/></svg>
+      <span class="nav-label">Ammonizioni</span>
     </button>
   </nav>
 </div>
@@ -437,7 +443,7 @@ function pinPress(val) {
 // NAV
 function navTo(section) {
   currentSection = section;
-  var names = {dashboard:"Dashboard",giocatori:"Giocatori",distinta:"Distinta",multe:"Multe",campionato:"Campionato"};
+  var names = {dashboard:"Dashboard",giocatori:"Giocatori",distinta:"Distinta",multe:"Multe",campionato:"Campionato",ammonizioni:"Ammonizioni"};
   var navItems = document.querySelectorAll(".nav-item");
   for (var i = 0; i < navItems.length; i++)
     navItems[i].classList.toggle("active", navItems[i].dataset.section === section);
@@ -449,6 +455,7 @@ function navTo(section) {
   if (section === "distinta") renderDistintaPlayers();
   if (section === "dashboard") renderDashboard();
   if (section === "multe") renderMulte();
+  if (section === "ammonizioni") renderAmmonizioni();
 }
 
 // DATA
@@ -474,7 +481,7 @@ function loadAllData() {
   });
   db.collection("dati_campionato").doc("ammonizioni").onSnapshot(function(doc) {
     currentAmmonizioni = (doc.exists && doc.data().log) ? doc.data().log : [];
-    if (currentSection === "campionato") renderAmmonizioni();
+    if (currentSection === "ammonizioni") renderAmmonizioni();
   });
 }
 
@@ -1104,8 +1111,6 @@ function campTab(btn, tab) {
   btn.classList.add("active");
   document.getElementById("camp-calendario-panel").style.display = tab === "calendario" ? "block" : "none";
   document.getElementById("camp-comunicato-panel").style.display = tab === "comunicato" ? "block" : "none";
-  document.getElementById("camp-ammonizioni-panel").style.display = tab === "ammonizioni" ? "block" : "none";
-  if (tab === "ammonizioni") renderAmmonizioni();
 }
 
 // ---- estrazione testo PDF (pdf.js), ricostruendo le righe con colonne separate da " @@ " ----
