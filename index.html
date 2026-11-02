@@ -381,6 +381,7 @@ if(db){
     calendarioData = (doc.exists && doc.data().partite) ? doc.data().partite : [];
     calendarioLoaded = true;
     if(currentSection==="calendario") renderRS(rsCurrentTab);
+    if(currentSection==="classifica" && classificaMode==="forma") renderClassificaSection(classificaData);
     renderHomeNext(calendarioData);
     renderHomeResults(calendarioData);
   });
