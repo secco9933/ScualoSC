@@ -78,16 +78,19 @@ label.chk-label input{width:18px;height:18px}
 .score-val{font-family:"Barlow Condensed",sans-serif;font-size:34px;font-weight:900;letter-spacing:1px}
 .score-timer{font-size:13px;color:var(--grey1);letter-spacing:1px;margin-top:4px}
 .score-timer.live{color:#4caf50;font-weight:700}
-.match-tabs{display:flex;gap:8px;margin-bottom:16px}
-.match-tab{flex:1;padding:9px 0;border-radius:7px;border:1px solid var(--grey3);background:transparent;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:1px;text-align:center}
-.match-tab.active{background:var(--white);color:var(--black);border-color:var(--white)}
 .gol-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
 .gol-btn{padding:16px 8px;border-radius:var(--radius);border:1px solid var(--border);background:var(--black3);color:var(--white);font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-align:center;letter-spacing:0.5px}
-.tabellino-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
-.tabellino-row .tr-left{flex:1}
-.tabellino-row .tr-main{font-weight:700}
-.tabellino-row .tr-sub{color:var(--grey1);font-size:11px;margin-top:2px}
-.tabellino-row .tr-remove{width:24px;height:24px;border-radius:50%;background:none;border:1px solid var(--grey3);color:var(--grey1);cursor:pointer;font-size:12px;flex-shrink:0}
+.tabellino-head{display:flex;justify-content:space-between;font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--grey2);text-transform:uppercase;padding:0 2px 6px}
+.tb-row{display:flex;align-items:center;gap:6px;padding:10px 2px;border-bottom:1px solid var(--border)}
+.tb-col{flex:1;display:flex;align-items:center;gap:7px;min-width:0}
+.tb-col.tb-noi{justify-content:flex-start}
+.tb-col.tb-avv{justify-content:flex-end;text-align:right}
+.tb-minuto{font-size:11px;color:var(--grey1);font-weight:700;flex-shrink:0}
+.tb-icon{flex-shrink:0;font-size:14px;line-height:1}
+.tb-text{min-width:0}
+.tb-main{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-sub{font-size:10.5px;color:var(--grey1);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-remove{width:22px;height:22px;border-radius:50%;background:none;border:1px solid var(--grey3);color:var(--grey1);cursor:pointer;font-size:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;justify-content:center;z-index:500}
@@ -195,32 +198,18 @@ label.chk-label input{width:18px;height:18px}
           <button class="btn-primary" id="btnIniziaPartita" style="width:100%;margin-top:14px" onclick="iniziaPartita()">Inizio Partita</button>
         </div>
 
-        <div class="match-tabs">
-          <button class="match-tab active" onclick="matchTab(this,'gol')">Gol</button>
-          <button class="match-tab" onclick="matchTab(this,'sostituzioni')">Sostituzioni</button>
-          <button class="match-tab" onclick="matchTab(this,'ammonizioni')">Ammonizioni</button>
+        <div class="gol-btns" style="grid-template-columns:repeat(2,1fr)">
+          <button class="gol-btn" onclick="apriModalGolNostro()">⚽ Gol Nostro</button>
+          <button class="gol-btn" onclick="golAvversari()">⚽ Gol Avversari</button>
+          <button class="gol-btn" onclick="apriModalSostituzione()">🔁 Sostituzione</button>
+          <button class="gol-btn" onclick="apriModalAmmonizione()">🟨 Ammonizione</button>
         </div>
 
-        <div id="matchPanelGol">
-          <div class="gol-btns">
-            <button class="gol-btn" onclick="apriModalGolNostro()">⚽ Gol Nostro</button>
-            <button class="gol-btn" onclick="golAvversari()">⚽ Gol Avversari</button>
-          </div>
-          <div class="roster-section-label">Tabellino</div>
-          <div id="tabellinoListGol"><div class="empty-state">Nessun gol segnato</div></div>
+        <div class="roster-section-label">Tabellino</div>
+        <div class="tabellino-head">
+          <span>SCUALO SC</span><span id="th-avv">AVVERSARIO</span>
         </div>
-
-        <div id="matchPanelSost" style="display:none">
-          <button class="gol-btn" style="width:100%;margin-bottom:20px" onclick="apriModalSostituzione()">🔁 Sostituzione</button>
-          <div class="roster-section-label">Tabellino</div>
-          <div id="tabellinoListSost"><div class="empty-state">Nessuna sostituzione registrata</div></div>
-        </div>
-
-        <div id="matchPanelAmm" style="display:none">
-          <button class="gol-btn" style="width:100%;margin-bottom:20px" onclick="apriModalAmmonizione()">🟨 Ammonizione</button>
-          <div class="roster-section-label">Tabellino</div>
-          <div id="tabellinoListAmm"><div class="empty-state">Nessuna ammonizione registrata</div></div>
-        </div>
+        <div id="tabellinoList"><div class="empty-state">Nessun evento registrato</div></div>
       </div>
 
     </div>
@@ -793,18 +782,13 @@ function iniziaPartita(){
   persistState();
   renderPartita();
 }
-function matchTab(btn, tab){
-  document.querySelectorAll(".match-tab").forEach(function(b){ b.classList.remove("active"); });
-  btn.classList.add("active");
-  document.getElementById("matchPanelGol").style.display = (tab==="gol") ? "block" : "none";
-  document.getElementById("matchPanelSost").style.display = (tab==="sostituzioni") ? "block" : "none";
-  document.getElementById("matchPanelAmm").style.display = (tab==="ammonizioni") ? "block" : "none";
-}
 function renderPartita(){
   document.getElementById("ps-noi").textContent = "SCUALO SC";
   document.getElementById("ps-avv").textContent = avversario || "—";
   document.getElementById("ps-punt-noi").textContent = punteggioNoi;
   document.getElementById("ps-punt-avv").textContent = punteggioAvv;
+  var thAvv = document.getElementById("th-avv");
+  if(thAvv) thAvv.textContent = avversario || "AVVERSARIO";
   var btnInizio = document.getElementById("btnIniziaPartita");
   var timerEl = document.getElementById("ps-timer");
   if(fase==="in_corso"){
@@ -820,36 +804,46 @@ function renderPartita(){
   }
   renderTabellino();
 }
+// Un evento è "nostro" (colonna sinistra) per ogni tipo tranne i gol avversari
 function formatEventoRow(e, idx){
-  var main, sub = "";
+  var icon, main, sub = "";
+  var nostro = e.tipo !== "avversario";
   if(e.tipo === "nostro"){
-    main = "⚽ " + (e.giocatoreCognome||"?") + (e.rigore ? " (R)" : "") + " " + e.minuto + "'";
-    if(e.assistCognome) sub = "assist: " + e.assistCognome;
+    icon = "⚽";
+    main = (e.giocatoreCognome||"?") + (e.rigore ? " (R)" : "");
+    if(e.assistCognome) sub = "ass. " + e.assistCognome;
   } else if(e.tipo === "avversario"){
-    main = "⚽ " + (avversario||"Avversari") + " " + e.minuto + "'";
+    icon = "⚽";
+    main = avversario || "Avversari";
   } else if(e.tipo === "sostituzione"){
-    main = "🔁 " + (e.escCognome||"?") + " ⟶ " + (e.entraCognome||"?") + " " + e.minuto + "'";
+    icon = "🔁";
+    main = (e.escCognome||"?") + " ⟶ " + (e.entraCognome||"?");
   } else if(e.tipo === "ammonizione"){
-    main = "🟨 " + (e.giocatoreCognome||"?") + " " + e.minuto + "'";
+    icon = "🟨";
+    main = e.giocatoreCognome||"?";
     if(e.nota) sub = e.nota;
   }
-  return '<div class="tabellino-row"><div class="tr-left"><div class="tr-main">'+main+'</div>' + (sub?('<div class="tr-sub">'+sub+'</div>'):'') + '</div><button class="tr-remove" onclick="rimuoviEvento('+idx+')">✕</button></div>';
-}
-function renderTabellinoFiltrato(containerId, tipi, vuotoMsg){
-  var list = document.getElementById(containerId);
-  if(!list) return;
-  var filtrati = eventi.map(function(e,idx){ return {e:e, idx:idx}; }).filter(function(item){ return tipi.indexOf(item.e.tipo)>=0; });
-  if(!filtrati.length){
-    list.innerHTML = '<div class="empty-state">'+vuotoMsg+'</div>';
-    return;
-  }
-  filtrati.sort(function(a,b){ return (a.e.minuto||0)-(b.e.minuto||0); });
-  list.innerHTML = filtrati.map(function(item){ return formatEventoRow(item.e, item.idx); }).join("");
+  var textHtml = '<div class="tb-text"><div class="tb-main">'+main+'</div>' + (sub?('<div class="tb-sub">'+sub+'</div>'):'') + '</div>';
+  var minutoHtml = '<div class="tb-minuto">'+e.minuto+"'"+'</div>';
+  var iconHtml = '<div class="tb-icon">'+icon+'</div>';
+  var colHtml = nostro ?
+    ('<div class="tb-col tb-noi">'+minutoHtml+iconHtml+textHtml+'</div><div class="tb-col tb-avv"></div>') :
+    ('<div class="tb-col tb-noi"></div><div class="tb-col tb-avv">'+iconHtml+textHtml+minutoHtml+'</div>');
+  return '<div class="tb-row">'+colHtml+'<button class="tb-remove" onclick="rimuoviEvento('+idx+')">✕</button></div>';
 }
 function renderTabellino(){
-  renderTabellinoFiltrato("tabellinoListGol", ["nostro","avversario"], "Nessun gol segnato");
-  renderTabellinoFiltrato("tabellinoListSost", ["sostituzione"], "Nessuna sostituzione registrata");
-  renderTabellinoFiltrato("tabellinoListAmm", ["ammonizione"], "Nessuna ammonizione registrata");
+  var list = document.getElementById("tabellinoList");
+  if(!list) return;
+  if(!eventi.length){
+    list.innerHTML = '<div class="empty-state">Nessun evento registrato</div>';
+    return;
+  }
+  var ordinati = eventi.map(function(e,idx){ return {e:e, idx:idx}; })
+    .sort(function(a,b){
+      if((b.e.minuto||0) !== (a.e.minuto||0)) return (b.e.minuto||0)-(a.e.minuto||0);
+      return (b.e.ts||0)-(a.e.ts||0);
+    });
+  list.innerHTML = ordinati.map(function(item){ return formatEventoRow(item.e, item.idx); }).join("");
 }
 function rimuoviEvento(idx){
   var e = eventi[idx];
