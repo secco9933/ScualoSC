@@ -50,6 +50,16 @@ body{overflow:hidden}
 .rs-tab.active{background:var(--white);border-color:var(--white);color:var(--black)}
 .rs-loading{text-align:center;padding:30px;color:var(--grey1);font-size:13px}
 .rs-error{text-align:center;padding:20px;color:var(--grey1);font-size:12px;line-height:1.6}
+.page-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:20px 0 14px;flex-wrap:wrap}
+.page-title-row .page-title{padding:0}
+.cls-switch{display:flex;gap:4px;background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:3px}
+.cls-mode{background:none;border:none;color:var(--grey2);font-family:"Barlow Condensed",sans-serif;font-size:10.5px;font-weight:700;letter-spacing:0.3px;padding:6px 8px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.cls-mode.active{background:var(--white);color:var(--black)}
+.form-strip{display:flex;gap:3px}
+.form-badge{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
+.form-badge.form-w{background:#2e9e4f}
+.form-badge.form-d{background:#6b6b6b}
+.form-badge.form-l{background:#c0392b}
 .rs-refresh{background:var(--black3);border:1px solid var(--grey3);border-radius:8px;padding:8px 16px;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;display:block;margin:10px auto 0}
 .classifica-table{width:100%;border-collapse:collapse;font-size:12px}
 .classifica-table th{background:var(--black4);color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 6px;text-align:left}
@@ -168,7 +178,14 @@ body{overflow:hidden}
     <!-- CLASSIFICA -->
     <div class="section" id="sec-classifica">
       <div class="inner">
-        <div class="page-title">Classifica</div>
+        <div class="page-title-row">
+          <div class="page-title" style="padding-bottom:0">Classifica</div>
+          <div class="cls-switch" id="classifica-switch">
+            <button class="cls-mode active" data-mode="compatta" onclick="setClassificaMode('compatta')">Compatta</button>
+            <button class="cls-mode" data-mode="estesa" onclick="setClassificaMode('estesa')">Estesa</button>
+            <button class="cls-mode" data-mode="forma" onclick="setClassificaMode('forma')">Forma</button>
+          </div>
+        </div>
         <div id="classifica-content"><div class="rs-loading">Caricamento...</div></div>
       </div>
     </div>
@@ -399,6 +416,30 @@ function goSection(tab){
   }
 }
 
+var classificaMode = "compatta"; // "compatta" | "estesa" | "forma"
+function setClassificaMode(m){
+  classificaMode = m;
+  document.querySelectorAll("#classifica-switch .cls-mode").forEach(function(b){ b.classList.toggle("active", b.dataset.mode===m); });
+  renderClassificaSection(classificaData);
+}
+function parseDataIt(d){
+  if(!d) return 0;
+  var p=d.split("/");
+  if(p.length<2) return 0;
+  var dd=parseInt(p[0]), mm=parseInt(p[1]), yy=p[2]?parseInt(p[2]):2026;
+  return new Date(yy,mm-1,dd).getTime();
+}
+function teamForm(team){
+  var played=calendarioData.filter(function(m){ return m.score && (m.casa===team||m.ospite===team); });
+  played.sort(function(a,b){ return parseDataIt(a.data)-parseDataIt(b.data); });
+  var last5=played.slice(-5);
+  return last5.map(function(m){
+    var p=m.score.split("-"); var gc=parseInt(p[0]), go=parseInt(p[1]);
+    var isCasa=m.casa===team;
+    var gf=isCasa?gc:go, ga=isCasa?go:gc;
+    return gf>ga?"W":(gf<ga?"L":"D");
+  });
+}
 function renderClassificaSection(data){
   var container=document.getElementById("classifica-content");
   if(!classificaLoaded){ container.innerHTML='<div class="rs-loading">Caricamento...</div>'; return; }
@@ -406,14 +447,30 @@ function renderClassificaSection(data){
   var wrap=document.createElement("div");wrap.style.overflowX="auto";
   var tbl=document.createElement("table");tbl.className="classifica-table";
   var thead=document.createElement("thead");
-  thead.innerHTML="<tr><th>#</th><th>Squadra</th><th>Pt</th><th>G</th><th>V</th><th>N</th><th>P</th><th>GF</th><th>GS</th><th>Diff</th></tr>";
+  var heads=["#","Squadra"];
+  if(classificaMode==="compatta") heads=heads.concat(["Pt","G","V","N","P","Diff"]);
+  else if(classificaMode==="estesa") heads=heads.concat(["Pt","G","V","N","P","GF","GS","Diff"]);
+  else heads=heads.concat(["Pt","Ultime 5"]);
+  thead.innerHTML="<tr>"+heads.map(function(h){return "<th>"+h+"</th>";}).join("")+"</tr>";
   tbl.appendChild(thead);
   var tbody=document.createElement("tbody");
   for(var i=0;i<data.length;i++){
     var d=data[i];var tr=document.createElement("tr");
     if(d.team.toLowerCase().indexOf("scual")>=0) tr.className="scualo";
-    var vals=[i+1,normalizeTeam(d.team),d.pts,d.g,d.v,d.n,d.p,d.gf,d.gs,d.diff];
-    for(var j=0;j<vals.length;j++){var td=document.createElement("td");td.textContent=vals[j];tr.appendChild(td);}
+    var vals=[i+1,normalizeTeam(d.team)];
+    if(classificaMode==="compatta") vals=vals.concat([d.pts,d.g,d.v,d.n,d.p,d.diff]);
+    else if(classificaMode==="estesa") vals=vals.concat([d.pts,d.g,d.v,d.n,d.p,d.gf,d.gs,d.diff]);
+    else vals.push(d.pts);
+    vals.forEach(function(v){ var td=document.createElement("td");td.textContent=v;tr.appendChild(td); });
+    if(classificaMode==="forma"){
+      var tdForm=document.createElement("td");
+      var formWrap=document.createElement("div");formWrap.className="form-strip";
+      teamForm(d.team).forEach(function(r){
+        var b=document.createElement("span");b.className="form-badge form-"+r.toLowerCase();b.textContent=r;
+        formWrap.appendChild(b);
+      });
+      tdForm.appendChild(formWrap);tr.appendChild(tdForm);
+    }
     tbody.appendChild(tr);
   }
   tbl.appendChild(tbody);wrap.appendChild(tbl);container.innerHTML="";container.appendChild(wrap);
