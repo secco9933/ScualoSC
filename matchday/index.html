@@ -14,10 +14,10 @@ html{scroll-behavior:smooth}
 html,body{height:100%;background:var(--black);color:var(--white);font-family:"Barlow",sans-serif}
 body{overflow:hidden}
 #app{display:flex;flex-direction:column;height:100%}
-.topbar{background:var(--black2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:11px;flex-shrink:0;z-index:10}
-.topbar-title{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:var(--white);flex:1}
-.topbar-title span{display:block;font-size:9px;font-weight:400;color:var(--grey1);letter-spacing:1.5px;margin-top:-2px;font-family:"Barlow",sans-serif;text-transform:uppercase}
-.topbar-reset{background:none;border:1px solid var(--grey3);color:var(--grey1);border-radius:8px;padding:6px 10px;font-size:11px;font-family:"Barlow Condensed",sans-serif;font-weight:700;letter-spacing:0.5px;cursor:pointer}
+.topbar{background:var(--black2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;z-index:10}
+.topbar-title{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:var(--white);flex:1;min-width:0}
+.topbar-title span{display:block;font-size:9px;font-weight:400;color:var(--grey1);letter-spacing:1.5px;margin-top:-2px;font-family:"Barlow",sans-serif;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-btn{background:none;border:1px solid var(--grey3);color:var(--grey1);border-radius:8px;padding:6px 10px;font-size:11px;font-family:"Barlow Condensed",sans-serif;font-weight:700;letter-spacing:0.5px;cursor:pointer;flex-shrink:0}
 .scroll-area{flex:1;overflow-y:auto;overflow-x:hidden}
 .scroll-area::-webkit-scrollbar{width:0}
 .inner{padding:14px 16px 40px;max-width:520px;margin:0 auto}
@@ -80,6 +80,8 @@ label.chk-label input{width:18px;height:18px}
 .score-timer.live{color:#4caf50;font-weight:700}
 .gol-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
 .gol-btn{padding:16px 8px;border-radius:var(--radius);border:1px solid var(--border);background:var(--black3);color:var(--white);font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-align:center;letter-spacing:0.5px}
+
+/* Tabellino unico, noi a sinistra / avversario a destra */
 .tabellino-head{display:flex;justify-content:space-between;font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--grey2);text-transform:uppercase;padding:0 2px 6px}
 .tb-row{display:flex;align-items:center;gap:6px;padding:10px 2px;border-bottom:1px solid var(--border)}
 .tb-col{flex:1;display:flex;align-items:center;gap:7px;min-width:0}
@@ -91,6 +93,20 @@ label.chk-label input{width:18px;height:18px}
 .tb-main{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb-sub{font-size:10.5px;color:var(--grey1);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb-remove{width:22px;height:22px;border-radius:50%;background:none;border:1px solid var(--grey3);color:var(--grey1);cursor:pointer;font-size:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.tb-divider{text-align:center;font-size:11px;color:var(--grey2);text-transform:uppercase;letter-spacing:1px;padding:10px 0;border-top:1px dashed var(--grey3);border-bottom:1px dashed var(--grey3);margin:6px 0}
+
+/* Cartellino: scelta colore */
+.card-color-btns{display:flex;gap:10px;margin-top:2px}
+.card-color-btn{flex:1;padding:12px;border-radius:8px;border:1px solid var(--grey3);background:var(--black3);color:var(--white);font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.5px}
+.card-color-btn.selected{border-color:var(--white);background:var(--black4)}
+
+/* Storico */
+.storico-card{background:var(--black3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+.storico-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;cursor:pointer}
+.storico-teams{font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:800;text-transform:uppercase}
+.storico-data{font-size:11px;color:var(--grey1);margin-top:2px}
+.storico-score{font-family:"Barlow Condensed",sans-serif;font-size:20px;font-weight:900;flex-shrink:0}
+.storico-body{padding:0 14px 14px;border-top:1px solid var(--border)}
 
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;justify-content:center;z-index:500}
@@ -107,6 +123,17 @@ label.chk-label input{width:18px;height:18px}
 .modal-actions{display:flex;gap:10px;margin-top:14px}
 .form-group{margin-bottom:14px}
 .form-label{font-size:11px;color:var(--grey1);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;font-weight:700}
+
+/* Stampa tabellino */
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea, #printArea *{visibility:visible}
+  #printArea{position:absolute;left:0;top:0;width:100%;display:block;color:#000;background:#fff;padding:20px}
+  .print-header{font-family:Arial,sans-serif;font-size:20px;font-weight:900;margin-bottom:4px}
+  .print-sub{font-family:Arial,sans-serif;font-size:13px;color:#333;margin-bottom:16px}
+  .print-row{font-family:Arial,sans-serif;font-size:12px;padding:5px 0;border-bottom:1px solid #ccc}
+}
 </style>
 </head>
 <body>
@@ -137,7 +164,8 @@ label.chk-label input{width:18px;height:18px}
 <div id="app" style="display:none">
   <div class="topbar">
     <div class="topbar-title">MATCHDAY<span id="topbarSub">Scualo SC</span></div>
-    <button class="topbar-reset" id="btnResetTop" style="display:none" onclick="nuovaPartitaConfirm()">Nuova Partita</button>
+    <button class="topbar-btn" onclick="apriStorico()">Storico</button>
+    <button class="topbar-btn" id="btnResetTop" style="display:none" onclick="nuovaPartitaConfirm()">Nuova Partita</button>
   </div>
   <div class="scroll-area">
     <div class="inner">
@@ -195,14 +223,14 @@ label.chk-label input{width:18px;height:18px}
           <div class="score-teams"><span id="ps-noi">SCUALO SC</span><span class="vs-sep">vs</span><span id="ps-avv">—</span></div>
           <div class="score-val"><span id="ps-punt-noi">0</span> — <span id="ps-punt-avv">0</span></div>
           <div class="score-timer" id="ps-timer">Partita non iniziata</div>
-          <button class="btn-primary" id="btnIniziaPartita" style="width:100%;margin-top:14px" onclick="iniziaPartita()">Inizio Partita</button>
+          <button class="btn-primary" id="btnFaseAzione" style="width:100%;margin-top:14px">Inizio Partita</button>
         </div>
 
-        <div class="gol-btns" style="grid-template-columns:repeat(2,1fr)">
+        <div class="gol-btns">
           <button class="gol-btn" onclick="apriModalGolNostro()">⚽ Gol Nostro</button>
           <button class="gol-btn" onclick="golAvversari()">⚽ Gol Avversari</button>
           <button class="gol-btn" onclick="apriModalSostituzione()">🔁 Sostituzione</button>
-          <button class="gol-btn" onclick="apriModalAmmonizione()">🟨 Ammonizione</button>
+          <button class="gol-btn" onclick="apriModalCartellino()">🟨🟥 Cartellino</button>
         </div>
 
         <div class="roster-section-label">Tabellino</div>
@@ -212,9 +240,18 @@ label.chk-label input{width:18px;height:18px}
         <div id="tabellinoList"><div class="empty-state">Nessun evento registrato</div></div>
       </div>
 
+      <!-- SCREEN: STORICO -->
+      <div id="screenStorico" style="display:none">
+        <button class="btn-primary btn-secondary" style="margin-bottom:16px" onclick="chiudiStorico()">← Indietro</button>
+        <div class="roster-section-label">Storico Partite</div>
+        <div id="storicoList"><div class="empty-state">Caricamento...</div></div>
+      </div>
+
     </div>
   </div>
 </div>
+
+<div id="printArea"></div>
 
 <!-- Modal: scelta avversario -->
 <div class="modal-overlay" id="modalAvversario" onclick="if(event.target===this)closeModalAvversario()">
@@ -283,22 +320,29 @@ label.chk-label input{width:18px;height:18px}
   </div>
 </div>
 
-<!-- Modal: ammonizione -->
-<div class="modal-overlay" id="modalAmmonizione" onclick="if(event.target===this)closeModalAmmonizione()">
+<!-- Modal: cartellino -->
+<div class="modal-overlay" id="modalCartellino" onclick="if(event.target===this)closeModalCartellino()">
   <div class="modal-box">
     <div class="modal-handle"></div>
-    <div class="modal-title">Ammonizione</div>
+    <div class="modal-title">Cartellino</div>
     <div class="form-group">
       <label class="form-label">Giocatore *</label>
-      <select class="field-input" id="amm-giocatore"><option value="">Seleziona...</option></select>
+      <select class="field-input" id="card-giocatore"><option value="">Seleziona...</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Colore *</label>
+      <div class="card-color-btns">
+        <button type="button" class="card-color-btn" data-color="giallo" onclick="selectCardColor('giallo')">🟨 Giallo</button>
+        <button type="button" class="card-color-btn" data-color="rosso" onclick="selectCardColor('rosso')">🟥 Rosso</button>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Nota (facoltativa)</label>
-      <input class="field-input" id="amm-nota" placeholder="Es. proteste, fallo di gioco...">
+      <input class="field-input" id="card-nota" placeholder="Es. proteste, fallo di gioco...">
     </div>
     <div class="modal-actions">
-      <button class="btn-primary btn-secondary" style="flex:1" onclick="closeModalAmmonizione()">Annulla</button>
-      <button class="btn-primary" style="flex:1" onclick="confermaAmmonizione()">Conferma</button>
+      <button class="btn-primary btn-secondary" style="flex:1" onclick="closeModalCartellino()">Annulla</button>
+      <button class="btn-primary" style="flex:1" onclick="confermaCartellino()">Conferma</button>
     </div>
   </div>
 </div>
@@ -419,16 +463,24 @@ var FORMAZIONI = {
 };
 
 // STATO PARTITA
-var fase = null;            // null | 'formazione' | 'gestione' | 'in_corso'
+var fase = null;            // null | 'formazione' | 'gestione'
 var avversario = null;
 var selectedFormazione = null;
 var titolari = {};          // slotId -> giocatoreId
 var panchina = [];          // array di giocatoreId
 var punteggioNoi = 0, punteggioAvv = 0;
-var kickoffAt = null;       // ms epoch
-var eventi = [];            // {tipo,minuto,giocatoreId,giocatoreNome,assistId,assistNome,rigore,ts}
+var timerStato = "non_iniziato"; // non_iniziato | primo_tempo | intervallo | secondo_tempo
+var kickoffAt = null;             // ms epoch, inizio primo tempo
+var minutoFinePrimoTempo = null;  // minuto raggiunto alla fine del primo tempo
+var secondoTempoKickoffAt = null; // ms epoch, inizio secondo tempo
+var eventi = [];             // {tipo,minuto,periodo,...,ts}
 var pickCtx = null;
 var timerHandle = null;
+var cardColorSelected = null;
+var viewStorico = false;
+var storicoPartite = [];
+var storicoCaricato = false;
+var storicoEspanso = {};
 
 function initApp(){
   try{
@@ -456,13 +508,32 @@ function initApp(){
       }
       punteggioNoi = data.punteggioNoi || 0;
       punteggioAvv = data.punteggioAvv || 0;
+      timerStato = data.timerStato || "non_iniziato";
       kickoffAt = data.kickoffAt ? new Date(data.kickoffAt).getTime() : null;
+      minutoFinePrimoTempo = data.minutoFinePrimoTempo || null;
+      secondoTempoKickoffAt = data.secondoTempoKickoffAt ? new Date(data.secondoTempoKickoffAt).getTime() : null;
       eventi = data.eventi || [];
     }
     renderScreens();
   }).catch(function(e){ console.error(e); renderScreens(); });
 }
 
+function buildTitolariOut(){
+  if(!selectedFormazione) return [];
+  var slots = FORMAZIONI[selectedFormazione];
+  return slots.map(function(slot){
+    var gid = titolari[slot.id];
+    var g = gid ? giocatori.find(function(x){return x.id===gid;}) : null;
+    return { slotId: slot.id, role: slot.role, label: slot.label, x: slot.x, y: slot.y,
+      giocatoreId: gid || null, nome: g?g.nome:null, cognome: g?g.cognome:null, numero: g?g.numero:null };
+  });
+}
+function buildPanchinaOut(){
+  return panchina.map(function(gid){
+    var g = giocatori.find(function(x){return x.id===gid;});
+    return { giocatoreId: gid, nome: g?g.nome:null, cognome: g?g.cognome:null, numero: g?g.numero:null };
+  });
+}
 function persistState(){
   if(!db) return;
   var out = {
@@ -471,32 +542,27 @@ function persistState(){
     formazione: selectedFormazione,
     punteggioNoi: punteggioNoi,
     punteggioAvv: punteggioAvv,
+    timerStato: timerStato,
     kickoffAt: kickoffAt ? new Date(kickoffAt).toISOString() : null,
+    minutoFinePrimoTempo: minutoFinePrimoTempo,
+    secondoTempoKickoffAt: secondoTempoKickoffAt ? new Date(secondoTempoKickoffAt).toISOString() : null,
     eventi: eventi,
+    titolari: buildTitolariOut(),
+    panchina: buildPanchinaOut(),
     updatedAt: new Date().toISOString()
   };
-  if(selectedFormazione){
-    var slots = FORMAZIONI[selectedFormazione];
-    out.titolari = slots.map(function(slot){
-      var gid = titolari[slot.id];
-      var g = gid ? giocatori.find(function(x){return x.id===gid;}) : null;
-      return { slotId: slot.id, role: slot.role, label: slot.label, x: slot.x, y: slot.y,
-        giocatoreId: gid || null, nome: g?g.nome:null, cognome: g?g.cognome:null, numero: g?g.numero:null };
-    });
-    out.panchina = panchina.map(function(gid){
-      var g = giocatori.find(function(x){return x.id===gid;});
-      return { giocatoreId: gid, nome: g?g.nome:null, cognome: g?g.cognome:null, numero: g?g.numero:null };
-    });
-  }
   db.collection("matchday").doc("current").set(out).catch(function(e){ console.error(e); });
 }
 
 function renderScreens(){
-  document.getElementById("screenHome").style.display = fase ? "none" : "block";
-  document.getElementById("screenFormazione").style.display = (fase==="formazione") ? "block" : "none";
-  document.getElementById("screenPartita").style.display = (fase==="gestione"||fase==="in_corso") ? "block" : "none";
-  document.getElementById("btnResetTop").style.display = fase ? "inline-block" : "none";
-  document.getElementById("topbarSub").textContent = avversario ? ("Scualo SC vs " + avversario) : "Scualo SC";
+  document.getElementById("screenHome").style.display = (!viewStorico && !fase) ? "block" : "none";
+  document.getElementById("screenFormazione").style.display = (!viewStorico && fase==="formazione") ? "block" : "none";
+  document.getElementById("screenPartita").style.display = (!viewStorico && fase==="gestione") ? "block" : "none";
+  document.getElementById("screenStorico").style.display = viewStorico ? "block" : "none";
+  document.getElementById("btnResetTop").style.display = (!viewStorico && fase) ? "inline-block" : "none";
+  document.getElementById("topbarSub").textContent = (avversario && !viewStorico) ? ("Scualo SC vs " + avversario) : "Scualo SC";
+
+  if(viewStorico) return;
 
   if(fase==="formazione"){
     document.getElementById("vsAvv").textContent = avversario || "—";
@@ -509,7 +575,7 @@ function renderScreens(){
       document.getElementById("pitchSection").style.display = "none";
     }
   }
-  if(fase==="gestione"||fase==="in_corso"){
+  if(fase==="gestione"){
     renderPartita();
   }
 }
@@ -524,7 +590,8 @@ function nuovaPartitaConfirm(){
 function resetStatoCompleto(){
   fase = null; avversario = null; selectedFormazione = null;
   titolari = {}; panchina = [];
-  punteggioNoi = 0; punteggioAvv = 0; kickoffAt = null; eventi = [];
+  punteggioNoi = 0; punteggioAvv = 0; eventi = [];
+  timerStato = "non_iniziato"; kickoffAt = null; minutoFinePrimoTempo = null; secondoTempoKickoffAt = null;
   stopTimer();
 }
 function nuovaPartita(){
@@ -731,7 +798,7 @@ function vaiAllaGestione(){
 }
 
 // ---- GESTIONE PARTITA ----
-// Giocatori attualmente in campo, tenendo conto delle sostituzioni già registrate
+// Giocatori attualmente in campo: titolari meno chi è uscito/espulso, più chi è entrato dalla panchina
 function giocatoriInCampoAttuale(){
   var inCampo = {};
   Object.keys(titolari).forEach(function(sid){ if(titolari[sid]) inCampo[titolari[sid]]=true; });
@@ -742,6 +809,7 @@ function giocatoriInCampoAttuale(){
       if(e.entraId) inCampo[e.entraId]=true;
     });
   return Object.keys(inCampo)
+    .filter(function(id){ return !giocatoreEspulso(id); })
     .map(function(id){ return giocatori.find(function(g){return g.id===id;}); })
     .filter(Boolean);
 }
@@ -753,22 +821,47 @@ function panchinaDisponibileAttuale(){
     .map(function(id){ return giocatori.find(function(g){return g.id===id;}); })
     .filter(Boolean);
 }
-function calcolaMinutoCorrente(){
-  if(!kickoffAt) return 1;
-  return Math.max(1, Math.floor((Date.now()-kickoffAt)/60000)+1);
+function contaGialli(giocatoreId){
+  return eventi.filter(function(e){ return e.tipo==="cartellino" && e.colore==="giallo" && e.giocatoreId===giocatoreId; }).length;
 }
-function formatTimer(){
-  if(!kickoffAt) return "00:00";
-  var sec = Math.max(0, Math.floor((Date.now()-kickoffAt)/1000));
+function giocatoreEspulso(giocatoreId){
+  return eventi.some(function(e){ return e.tipo==="cartellino" && e.colore==="rosso" && e.giocatoreId===giocatoreId; });
+}
+function periodoCorrente(){
+  return timerStato==="secondo_tempo" ? 2 : 1;
+}
+function calcolaMinutoCorrente(){
+  if(timerStato==="primo_tempo" && kickoffAt){
+    return Math.max(1, Math.floor((Date.now()-kickoffAt)/60000)+1);
+  }
+  if(timerStato==="intervallo"){
+    return minutoFinePrimoTempo || 45;
+  }
+  if(timerStato==="secondo_tempo" && secondoTempoKickoffAt){
+    var base = minutoFinePrimoTempo || 45;
+    return base + Math.max(1, Math.floor((Date.now()-secondoTempoKickoffAt)/60000)+1);
+  }
+  return 1;
+}
+function mmss(sec){
   var mm = Math.floor(sec/60), ss = sec%60;
   return (mm<10?"0":"")+mm+":"+(ss<10?"0":"")+ss;
+}
+function formatTimer(){
+  if(timerStato==="primo_tempo" && kickoffAt){
+    return mmss(Math.max(0, Math.floor((Date.now()-kickoffAt)/1000)));
+  }
+  if(timerStato==="secondo_tempo" && secondoTempoKickoffAt){
+    return mmss(Math.max(0, Math.floor((Date.now()-secondoTempoKickoffAt)/1000)));
+  }
+  return "00:00";
 }
 function stopTimer(){
   if(timerHandle){ clearInterval(timerHandle); timerHandle=null; }
 }
 function startTimerIfNeeded(){
   stopTimer();
-  if(fase==="in_corso" && kickoffAt){
+  if(timerStato==="primo_tempo" || timerStato==="secondo_tempo"){
     timerHandle = setInterval(function(){
       var el = document.getElementById("ps-timer");
       if(el) el.textContent = formatTimer() + " · " + calcolaMinutoCorrente() + "'";
@@ -778,9 +871,50 @@ function startTimerIfNeeded(){
 function iniziaPartita(){
   if(!confirm("L'arbitro ha fischiato l'inizio? Il cronometro partirà ora.")) return;
   kickoffAt = Date.now();
-  fase = "in_corso";
+  timerStato = "primo_tempo";
   persistState();
   renderPartita();
+}
+function fineTempo1(){
+  if(!confirm("Fischio finale del primo tempo?")) return;
+  minutoFinePrimoTempo = calcolaMinutoCorrente();
+  timerStato = "intervallo";
+  stopTimer();
+  persistState();
+  renderPartita();
+}
+function iniziaTempo2(){
+  if(!confirm("Inizia il secondo tempo?")) return;
+  secondoTempoKickoffAt = Date.now();
+  timerStato = "secondo_tempo";
+  persistState();
+  renderPartita();
+}
+function finePartita(){
+  if(!confirm("Confermi il triplice fischio? La partita verrà chiusa e archiviata nello storico.")) return;
+  stopTimer();
+  var minutoFinale = calcolaMinutoCorrente();
+  var record = {
+    avversario: avversario,
+    formazione: selectedFormazione,
+    titolari: buildTitolariOut(),
+    panchina: buildPanchinaOut(),
+    punteggioNoi: punteggioNoi,
+    punteggioAvv: punteggioAvv,
+    eventi: eventi,
+    minutoFinePrimoTempo: minutoFinePrimoTempo,
+    minutoFinale: minutoFinale,
+    dataPartita: new Date().toISOString(),
+    createdAt: new Date().toISOString()
+  };
+  if(!db){ alert("Connessione non disponibile, impossibile archiviare la partita."); return; }
+  db.collection("storico_partite").add(record).then(function(){
+    storicoCaricato = false;
+    resetStatoCompleto();
+    renderScreens();
+    persistState();
+    alert("Partita archiviata nello storico.");
+  }).catch(function(e){ alert("Errore durante l'archiviazione: " + e.message); });
 }
 function renderPartita(){
   document.getElementById("ps-noi").textContent = "SCUALO SC";
@@ -789,23 +923,26 @@ function renderPartita(){
   document.getElementById("ps-punt-avv").textContent = punteggioAvv;
   var thAvv = document.getElementById("th-avv");
   if(thAvv) thAvv.textContent = avversario || "AVVERSARIO";
-  var btnInizio = document.getElementById("btnIniziaPartita");
   var timerEl = document.getElementById("ps-timer");
-  if(fase==="in_corso"){
-    btnInizio.style.display = "none";
-    timerEl.className = "score-timer live";
-    timerEl.textContent = formatTimer() + " · " + calcolaMinutoCorrente() + "'";
-    startTimerIfNeeded();
-  } else {
-    btnInizio.style.display = "flex";
-    timerEl.className = "score-timer";
-    timerEl.textContent = "Partita non iniziata";
-    stopTimer();
+  var btn = document.getElementById("btnFaseAzione");
+  if(timerStato==="non_iniziato"){
+    timerEl.className = "score-timer"; timerEl.textContent = "Partita non iniziata"; stopTimer();
+    btn.style.display = "flex"; btn.textContent = "Inizio Partita"; btn.onclick = iniziaPartita;
+  } else if(timerStato==="primo_tempo"){
+    timerEl.className = "score-timer live"; timerEl.textContent = formatTimer()+" · "+calcolaMinutoCorrente()+"'"; startTimerIfNeeded();
+    btn.style.display = "flex"; btn.textContent = "Fine Primo Tempo"; btn.onclick = fineTempo1;
+  } else if(timerStato==="intervallo"){
+    timerEl.className = "score-timer"; timerEl.textContent = "Intervallo"+(minutoFinePrimoTempo?(" · "+minutoFinePrimoTempo+"'"):""); stopTimer();
+    btn.style.display = "flex"; btn.textContent = "Inizio Secondo Tempo"; btn.onclick = iniziaTempo2;
+  } else if(timerStato==="secondo_tempo"){
+    timerEl.className = "score-timer live"; timerEl.textContent = formatTimer()+" · "+calcolaMinutoCorrente()+"'"; startTimerIfNeeded();
+    btn.style.display = "flex"; btn.textContent = "Fine Partita"; btn.onclick = finePartita;
   }
   renderTabellino();
 }
-// Un evento è "nostro" (colonna sinistra) per ogni tipo tranne i gol avversari
-function formatEventoRow(e, idx){
+
+// ---- TABELLINO (unico, noi a sinistra / avversario a destra) ----
+function formatEventoContenuto(e, avvNome){
   var icon, main, sub = "";
   var nostro = e.tipo !== "avversario";
   if(e.tipo === "nostro"){
@@ -814,22 +951,45 @@ function formatEventoRow(e, idx){
     if(e.assistCognome) sub = "ass. " + e.assistCognome;
   } else if(e.tipo === "avversario"){
     icon = "⚽";
-    main = avversario || "Avversari";
+    main = avvNome || "Avversari";
   } else if(e.tipo === "sostituzione"){
     icon = "🔁";
-    main = (e.escCognome||"?") + " ⟶ " + (e.entraCognome||"?");
-  } else if(e.tipo === "ammonizione"){
-    icon = "🟨";
-    main = e.giocatoreCognome||"?";
+    main = e.entraCognome || "?";
+    sub = "esce " + (e.escCognome||"?");
+  } else if(e.tipo === "cartellino"){
+    if(e.colore === "giallo"){
+      icon = "🟨"; main = e.giocatoreCognome||"?";
+    } else if(e.sottotipo === "doppio_giallo"){
+      icon = "🟨🟥"; main = (e.giocatoreCognome||"?") + " (2° giallo)";
+    } else {
+      icon = "🟥"; main = e.giocatoreCognome||"?";
+    }
     if(e.nota) sub = e.nota;
   }
-  var textHtml = '<div class="tb-text"><div class="tb-main">'+main+'</div>' + (sub?('<div class="tb-sub">'+sub+'</div>'):'') + '</div>';
-  var minutoHtml = '<div class="tb-minuto">'+e.minuto+"'"+'</div>';
-  var iconHtml = '<div class="tb-icon">'+icon+'</div>';
-  var colHtml = nostro ?
+  return {icon:icon, main:main, sub:sub, nostro:nostro};
+}
+function buildTbRowHtml(c, minuto, removeBtnHtml){
+  var textHtml = '<div class="tb-text"><div class="tb-main">'+c.main+'</div>' + (c.sub?('<div class="tb-sub">'+c.sub+'</div>'):'') + '</div>';
+  var minutoHtml = '<div class="tb-minuto">'+minuto+"'"+'</div>';
+  var iconHtml = '<div class="tb-icon">'+c.icon+'</div>';
+  var colHtml = c.nostro ?
     ('<div class="tb-col tb-noi">'+minutoHtml+iconHtml+textHtml+'</div><div class="tb-col tb-avv"></div>') :
     ('<div class="tb-col tb-noi"></div><div class="tb-col tb-avv">'+iconHtml+textHtml+minutoHtml+'</div>');
-  return '<div class="tb-row">'+colHtml+'<button class="tb-remove" onclick="rimuoviEvento('+idx+')">✕</button></div>';
+  return '<div class="tb-row">'+colHtml+(removeBtnHtml||'')+'</div>';
+}
+function formatEventoRowLive(e, idx){
+  var c = formatEventoContenuto(e, avversario);
+  return buildTbRowHtml(c, e.minuto, '<button class="tb-remove" onclick="rimuoviEvento('+idx+')">✕</button>');
+}
+function formatEventoRowStorico(e, avvNome){
+  var c = formatEventoContenuto(e, avvNome);
+  return buildTbRowHtml(c, e.minuto, '');
+}
+function ordinaEventi(arr){
+  return arr.sort(function(a,b){
+    if((b.e.minuto||0) !== (a.e.minuto||0)) return (b.e.minuto||0)-(a.e.minuto||0);
+    return (b.e.ts||0)-(a.e.ts||0);
+  });
 }
 function renderTabellino(){
   var list = document.getElementById("tabellinoList");
@@ -838,12 +998,14 @@ function renderTabellino(){
     list.innerHTML = '<div class="empty-state">Nessun evento registrato</div>';
     return;
   }
-  var ordinati = eventi.map(function(e,idx){ return {e:e, idx:idx}; })
-    .sort(function(a,b){
-      if((b.e.minuto||0) !== (a.e.minuto||0)) return (b.e.minuto||0)-(a.e.minuto||0);
-      return (b.e.ts||0)-(a.e.ts||0);
-    });
-  list.innerHTML = ordinati.map(function(item){ return formatEventoRow(item.e, item.idx); }).join("");
+  var withIdx = eventi.map(function(e,idx){ return {e:e, idx:idx}; });
+  var p2 = ordinaEventi(withIdx.filter(function(it){ return (it.e.periodo||1)===2; }));
+  var p1 = ordinaEventi(withIdx.filter(function(it){ return (it.e.periodo||1)===1; }));
+  var html = "";
+  if(p2.length) html += p2.map(function(it){ return formatEventoRowLive(it.e, it.idx); }).join("");
+  if(p2.length && p1.length) html += '<div class="tb-divider">Intervallo'+(minutoFinePrimoTempo?(' · '+minutoFinePrimoTempo+"'"):'')+'</div>';
+  if(p1.length) html += p1.map(function(it){ return formatEventoRowLive(it.e, it.idx); }).join("");
+  list.innerHTML = html;
 }
 function rimuoviEvento(idx){
   var e = eventi[idx];
@@ -855,9 +1017,11 @@ function rimuoviEvento(idx){
   persistState();
   renderPartita();
 }
+
+// ---- GOL ----
 function golAvversari(){
   var minuto = calcolaMinutoCorrente();
-  eventi.push({ tipo:"avversario", minuto:minuto, ts:Date.now() });
+  eventi.push({ tipo:"avversario", minuto:minuto, periodo:periodoCorrente(), ts:Date.now() });
   punteggioAvv++;
   persistState();
   renderPartita();
@@ -888,7 +1052,7 @@ function confermaGolNostro(){
   var ass = assistId ? giocatori.find(function(g){return g.id===assistId;}) : null;
   var minuto = calcolaMinutoCorrente();
   eventi.push({
-    tipo: "nostro", minuto: minuto,
+    tipo: "nostro", minuto: minuto, periodo: periodoCorrente(),
     giocatoreId: marcId, giocatoreNome: marc?marc.nome:null, giocatoreCognome: marc?marc.cognome:null,
     assistId: assistId || null, assistNome: ass?ass.nome:null, assistCognome: ass?ass.cognome:null,
     rigore: !!rigore, ts: Date.now()
@@ -899,25 +1063,28 @@ function confermaGolNostro(){
   renderPartita();
 }
 
+// ---- SOSTITUZIONE ----
 function apriModalSostituzione(){
+  var inCampo = giocatoriInCampoAttuale();
+  var disponibili = panchinaDisponibileAttuale();
+  if(!inCampo.length || !disponibili.length){
+    alert("Non ci sono abbastanza giocatori disponibili per effettuare una sostituzione.");
+    return;
+  }
   var selE = document.getElementById("sost-esce");
   var selN = document.getElementById("sost-entra");
   selE.innerHTML = '<option value="">Seleziona...</option>';
   selN.innerHTML = '<option value="">Seleziona...</option>';
-  giocatoriInCampoAttuale().forEach(function(g){
+  inCampo.forEach(function(g){
     var o = document.createElement("option");
     o.value = g.id; o.textContent = g.cognome + " " + g.nome + (g.numero?(" (N."+g.numero+")"):"");
     selE.appendChild(o);
   });
-  panchinaDisponibileAttuale().forEach(function(g){
+  disponibili.forEach(function(g){
     var o = document.createElement("option");
     o.value = g.id; o.textContent = g.cognome + " " + g.nome + (g.numero?(" (N."+g.numero+")"):"");
     selN.appendChild(o);
   });
-  if(!giocatoriInCampoAttuale().length || !panchinaDisponibileAttuale().length){
-    alert("Non ci sono abbastanza giocatori disponibili per effettuare una sostituzione.");
-    return;
-  }
   document.getElementById("modalSostituzione").classList.add("open");
 }
 function closeModalSostituzione(){
@@ -931,7 +1098,7 @@ function confermaSostituzione(){
   var entra = giocatori.find(function(g){return g.id===entraId;});
   var minuto = calcolaMinutoCorrente();
   eventi.push({
-    tipo: "sostituzione", minuto: minuto,
+    tipo: "sostituzione", minuto: minuto, periodo: periodoCorrente(),
     escId: escId, escNome: esc?esc.nome:null, escCognome: esc?esc.cognome:null,
     entraId: entraId, entraNome: entra?entra.nome:null, entraCognome: entra?entra.cognome:null,
     ts: Date.now()
@@ -941,36 +1108,137 @@ function confermaSostituzione(){
   renderPartita();
 }
 
-function apriModalAmmonizione(){
-  var sel = document.getElementById("amm-giocatore");
-  sel.innerHTML = '<option value="">Seleziona...</option>';
+// ---- CARTELLINI ----
+function apriModalCartellino(){
   var disponibili = giocatoriInCampoAttuale();
+  if(!disponibili.length){ alert("Nessun giocatore attualmente in campo."); return; }
+  var sel = document.getElementById("card-giocatore");
+  sel.innerHTML = '<option value="">Seleziona...</option>';
   disponibili.forEach(function(g){
     var o = document.createElement("option");
     o.value = g.id; o.textContent = g.cognome + " " + g.nome + (g.numero?(" (N."+g.numero+")"):"");
     sel.appendChild(o);
   });
-  document.getElementById("amm-nota").value = "";
-  if(!disponibili.length){ alert("Nessun giocatore attualmente in campo."); return; }
-  document.getElementById("modalAmmonizione").classList.add("open");
+  document.getElementById("card-nota").value = "";
+  cardColorSelected = null;
+  document.querySelectorAll(".card-color-btn").forEach(function(b){ b.classList.remove("selected"); });
+  document.getElementById("modalCartellino").classList.add("open");
 }
-function closeModalAmmonizione(){
-  document.getElementById("modalAmmonizione").classList.remove("open");
+function selectCardColor(c){
+  cardColorSelected = c;
+  document.querySelectorAll(".card-color-btn").forEach(function(b){ b.classList.toggle("selected", b.dataset.color===c); });
 }
-function confermaAmmonizione(){
-  var gid = document.getElementById("amm-giocatore").value;
+function closeModalCartellino(){
+  document.getElementById("modalCartellino").classList.remove("open");
+}
+function confermaCartellino(){
+  var gid = document.getElementById("card-giocatore").value;
   if(!gid){ alert("Seleziona il giocatore."); return; }
+  if(!cardColorSelected){ alert("Seleziona il colore del cartellino."); return; }
   var g = giocatori.find(function(x){return x.id===gid;});
-  var nota = (document.getElementById("amm-nota").value||"").trim();
+  var nota = (document.getElementById("card-nota").value||"").trim();
   var minuto = calcolaMinutoCorrente();
-  eventi.push({
-    tipo: "ammonizione", minuto: minuto,
-    giocatoreId: gid, giocatoreNome: g?g.nome:null, giocatoreCognome: g?g.cognome:null,
-    nota: nota || null, ts: Date.now()
-  });
+  var periodo = periodoCorrente();
+  if(cardColorSelected==="rosso"){
+    eventi.push({
+      tipo:"cartellino", colore:"rosso", sottotipo:"diretto", minuto:minuto, periodo:periodo,
+      giocatoreId: gid, giocatoreNome: g?g.nome:null, giocatoreCognome: g?g.cognome:null,
+      nota: nota || null, ts: Date.now()
+    });
+  } else {
+    if(contaGialli(gid) >= 1){
+      eventi.push({
+        tipo:"cartellino", colore:"rosso", sottotipo:"doppio_giallo", minuto:minuto, periodo:periodo,
+        giocatoreId: gid, giocatoreNome: g?g.nome:null, giocatoreCognome: g?g.cognome:null,
+        nota: nota || null, ts: Date.now()
+      });
+      alert("Secondo giallo per " + (g?g.cognome:"il giocatore") + ": espulsione per doppio giallo registrata automaticamente.");
+    } else {
+      eventi.push({
+        tipo:"cartellino", colore:"giallo", sottotipo:null, minuto:minuto, periodo:periodo,
+        giocatoreId: gid, giocatoreNome: g?g.nome:null, giocatoreCognome: g?g.cognome:null,
+        nota: nota || null, ts: Date.now()
+      });
+    }
+  }
   persistState();
-  closeModalAmmonizione();
+  closeModalCartellino();
   renderPartita();
+}
+
+// ---- STORICO PARTITE ----
+function apriStorico(){
+  viewStorico = true;
+  renderScreens();
+  if(!storicoCaricato) caricaStorico();
+  else renderStorico();
+}
+function chiudiStorico(){
+  viewStorico = false;
+  renderScreens();
+}
+function caricaStorico(){
+  if(!db){ document.getElementById("storicoList").innerHTML = '<div class="empty-state">Connessione non disponibile.</div>'; return; }
+  document.getElementById("storicoList").innerHTML = '<div class="empty-state">Caricamento...</div>';
+  db.collection("storico_partite").orderBy("dataPartita","desc").get().then(function(snap){
+    storicoPartite = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; });
+    storicoCaricato = true;
+    renderStorico();
+  }).catch(function(e){
+    document.getElementById("storicoList").innerHTML = '<div class="empty-state">Errore nel caricamento.</div>';
+  });
+}
+function renderStoricoTabellino(m){
+  var eventiM = m.eventi || [];
+  if(!eventiM.length) return '<div class="empty-state">Nessun evento registrato</div>';
+  var withIdx = eventiM.map(function(e,idx){ return {e:e, idx:idx}; });
+  var p2 = ordinaEventi(withIdx.filter(function(it){ return (it.e.periodo||1)===2; }));
+  var p1 = ordinaEventi(withIdx.filter(function(it){ return (it.e.periodo||1)===1; }));
+  var html = '<div class="tabellino-head"><span>SCUALO SC</span><span>'+(m.avversario||"AVVERSARIO")+'</span></div>';
+  if(p2.length) html += p2.map(function(it){ return formatEventoRowStorico(it.e, m.avversario); }).join("");
+  if(p2.length && p1.length) html += '<div class="tb-divider">Intervallo'+(m.minutoFinePrimoTempo?(' · '+m.minutoFinePrimoTempo+"'"):'')+'</div>';
+  if(p1.length) html += p1.map(function(it){ return formatEventoRowStorico(it.e, m.avversario); }).join("");
+  return html;
+}
+function renderStorico(){
+  var list = document.getElementById("storicoList");
+  if(!storicoPartite.length){ list.innerHTML = '<div class="empty-state">Nessuna partita archiviata</div>'; return; }
+  var html = "";
+  storicoPartite.forEach(function(m){
+    var data = m.dataPartita ? new Date(m.dataPartita).toLocaleDateString("it-IT") : "";
+    var espanso = !!storicoEspanso[m.id];
+    html += '<div class="storico-card">';
+    html += '<div class="storico-head" onclick="toggleStorico(\''+m.id+'\')">';
+    html += '<div><div class="storico-teams">SCUALO SC vs '+(m.avversario||"—")+'</div><div class="storico-data">'+data+'</div></div>';
+    html += '<div class="storico-score">'+(m.punteggioNoi!=null?m.punteggioNoi:0)+' - '+(m.punteggioAvv!=null?m.punteggioAvv:0)+'</div>';
+    html += '</div>';
+    if(espanso){
+      html += '<div class="storico-body">';
+      html += renderStoricoTabellino(m);
+      html += '<button class="btn-primary" style="width:100%;margin-top:14px" onclick="esportaTabellino(\''+m.id+'\')">📄 Esporta Tabellino</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  list.innerHTML = html;
+}
+function toggleStorico(id){
+  storicoEspanso[id] = !storicoEspanso[id];
+  renderStorico();
+}
+function esportaTabellino(matchId){
+  var m = storicoPartite.find(function(x){return x.id===matchId;});
+  if(!m) return;
+  var data = m.dataPartita ? new Date(m.dataPartita).toLocaleDateString("it-IT") : "";
+  var html = '<div class="print-header">SCUALO SC '+(m.punteggioNoi!=null?m.punteggioNoi:0)+' - '+(m.punteggioAvv!=null?m.punteggioAvv:0)+' '+(m.avversario||"")+'</div>';
+  html += '<div class="print-sub">'+data+(m.formazione?(' · Modulo '+m.formazione):'')+'</div>';
+  var eventiM = (m.eventi||[]).slice().sort(function(a,b){ return (a.minuto||0)-(b.minuto||0); });
+  eventiM.forEach(function(e){
+    var c = formatEventoContenuto(e, m.avversario);
+    html += '<div class="print-row">'+e.minuto+"' — "+(c.nostro?"SCUALO SC":(m.avversario||"Avversari"))+": "+c.main+(c.sub?(" ("+c.sub+")"):"")+'</div>';
+  });
+  document.getElementById("printArea").innerHTML = html;
+  window.print();
 }
 </script>
 </body>
