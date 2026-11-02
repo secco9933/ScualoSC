@@ -211,7 +211,7 @@ label.chk-label input{width:18px;height:18px}
 
           <div class="roster-section-label" style="margin-top:22px">Panchina</div>
           <div class="bench-list" id="benchList"></div>
-          <button class="bench-add" style="width:100%;margin-top:10px" onclick="openPicker('panchina',null)">+ Aggiungi in panchina</button>
+          <button class="bench-add" style="width:100%;margin-top:10px" onclick="apriPickerPanchinaMultiplo()">+ Aggiungi in panchina</button>
 
           <button class="btn-primary" style="width:100%;margin-top:24px" onclick="vaiAllaGestione()">Prossimo</button>
         </div>
@@ -275,6 +275,20 @@ label.chk-label input{width:18px;height:18px}
     <div class="pick-list" id="pickList"></div>
     <div class="modal-actions">
       <button class="btn-primary btn-secondary" style="width:100%" onclick="closePicker()">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: panchina multiplo -->
+<div class="modal-overlay" id="modalPanchinaMulti" onclick="if(event.target===this)closePanchinaMultiplo()">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Aggiungi in panchina</div>
+    <input class="field-input" id="panchinaMultiSearch" placeholder="Cerca giocatore..." oninput="renderPanchinaMultiList()">
+    <div class="pick-list" id="panchinaMultiList"></div>
+    <div class="modal-actions">
+      <button class="btn-primary btn-secondary" style="flex:1" onclick="closePanchinaMultiplo()">Annulla</button>
+      <button class="btn-primary" style="flex:1" onclick="confermaPanchinaMultiplo()">Aggiungi selezionati</button>
     </div>
   </div>
 </div>
@@ -751,13 +765,14 @@ function renderPickList(){
     list.appendChild(clearItem);
   }
 
-  giocatori.filter(function(g){
+  var disponibili = giocatori.filter(function(g){
     var txt = ((g.nome||"")+" "+(g.cognome||"")).toLowerCase();
-    return !q || txt.indexOf(q)>=0 || String(g.numero||"").indexOf(q)>=0;
-  }).forEach(function(g){
-    var disabled = assegnatiAltrove(g.id, pickCtx);
+    var matchQ = !q || txt.indexOf(q)>=0 || String(g.numero||"").indexOf(q)>=0;
+    return matchQ && !assegnatiAltrove(g.id, pickCtx);
+  });
+  disponibili.forEach(function(g){
     var item = document.createElement("div");
-    item.className = "pick-item" + (disabled ? " disabled" : "");
+    item.className = "pick-item";
     var num = document.createElement("div");
     num.className = "pick-num";
     num.textContent = g.numero || "-";
@@ -766,18 +781,16 @@ function renderPickList(){
     nm.className = "pick-name";
     nm.textContent = g.cognome + " " + g.nome;
     item.appendChild(nm);
-    if(!disabled){
-      item.onclick = function(){
-        if(pickCtx.type==="titolare"){
-          titolari[pickCtx.slotId] = g.id;
-        } else if(pickCtx.benchIndex!=null){
-          panchina[pickCtx.benchIndex] = g.id;
-        } else {
-          panchina.push(g.id);
-        }
-        closePicker(); renderPitch(); renderBench(); persistState();
-      };
-    }
+    item.onclick = function(){
+      if(pickCtx.type==="titolare"){
+        titolari[pickCtx.slotId] = g.id;
+      } else if(pickCtx.benchIndex!=null){
+        panchina[pickCtx.benchIndex] = g.id;
+      } else {
+        panchina.push(g.id);
+      }
+      closePicker(); renderPitch(); renderBench(); persistState();
+    };
     list.appendChild(item);
   });
 
@@ -786,7 +799,75 @@ function renderPickList(){
     e.className = "empty-state";
     e.textContent = "Nessun giocatore in rosa";
     list.appendChild(e);
+  } else if(!disponibili.length){
+    var e2 = document.createElement("div");
+    e2.className = "empty-state";
+    e2.textContent = "Nessun altro giocatore disponibile";
+    list.appendChild(e2);
   }
+}
+
+// ---- PANCHINA: selezione multipla in un'unica finestra ----
+var panchinaMultiSelezionati = [];
+function apriPickerPanchinaMultiplo(){
+  panchinaMultiSelezionati = [];
+  document.getElementById("panchinaMultiSearch").value = "";
+  renderPanchinaMultiList();
+  document.getElementById("modalPanchinaMulti").classList.add("open");
+}
+function closePanchinaMultiplo(){
+  document.getElementById("modalPanchinaMulti").classList.remove("open");
+}
+function renderPanchinaMultiList(){
+  var q = (document.getElementById("panchinaMultiSearch").value||"").toLowerCase();
+  var list = document.getElementById("panchinaMultiList");
+  list.innerHTML = "";
+  var disponibili = giocatori.filter(function(g){
+    var txt = ((g.nome||"")+" "+(g.cognome||"")).toLowerCase();
+    var matchQ = !q || txt.indexOf(q)>=0 || String(g.numero||"").indexOf(q)>=0;
+    return matchQ && !assegnatiAltrove(g.id, {type:"panchina", benchIndex:null});
+  });
+  disponibili.forEach(function(g){
+    var checked = panchinaMultiSelezionati.indexOf(g.id) >= 0;
+    var item = document.createElement("div");
+    item.className = "pick-item";
+    var chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.checked = checked;
+    chk.style.width = "18px"; chk.style.height = "18px"; chk.style.flexShrink = "0";
+    chk.onclick = function(ev){ ev.stopPropagation(); };
+    item.appendChild(chk);
+    var num = document.createElement("div");
+    num.className = "pick-num";
+    num.textContent = g.numero || "-";
+    item.appendChild(num);
+    var nm = document.createElement("div");
+    nm.className = "pick-name";
+    nm.textContent = g.cognome + " " + g.nome;
+    item.appendChild(nm);
+    item.onclick = function(){
+      var idx = panchinaMultiSelezionati.indexOf(g.id);
+      if(idx>=0) panchinaMultiSelezionati.splice(idx,1);
+      else panchinaMultiSelezionati.push(g.id);
+      renderPanchinaMultiList();
+    };
+    list.appendChild(item);
+  });
+  if(!disponibili.length){
+    var e = document.createElement("div");
+    e.className = "empty-state";
+    e.textContent = "Nessun altro giocatore disponibile";
+    list.appendChild(e);
+  }
+}
+function confermaPanchinaMultiplo(){
+  panchinaMultiSelezionati.forEach(function(id){
+    if(panchina.indexOf(id)<0) panchina.push(id);
+  });
+  panchinaMultiSelezionati = [];
+  closePanchinaMultiplo();
+  renderBench();
+  persistState();
 }
 function vaiAllaGestione(){
   if(!selectedFormazione){ alert("Seleziona prima un modulo."); return; }
@@ -827,6 +908,7 @@ function contaGialli(giocatoreId){
 function giocatoreEspulso(giocatoreId){
   return eventi.some(function(e){ return e.tipo==="cartellino" && e.colore==="rosso" && e.giocatoreId===giocatoreId; });
 }
+var DURATA_TEMPO = 40; // minuti regolamentari per tempo nel nostro campionato (UISP)
 function periodoCorrente(){
   return timerStato==="secondo_tempo" ? 2 : 1;
 }
@@ -835,11 +917,10 @@ function calcolaMinutoCorrente(){
     return Math.max(1, Math.floor((Date.now()-kickoffAt)/60000)+1);
   }
   if(timerStato==="intervallo"){
-    return minutoFinePrimoTempo || 45;
+    return minutoFinePrimoTempo || DURATA_TEMPO;
   }
   if(timerStato==="secondo_tempo" && secondoTempoKickoffAt){
-    var base = minutoFinePrimoTempo || 45;
-    return base + Math.max(1, Math.floor((Date.now()-secondoTempoKickoffAt)/60000)+1);
+    return DURATA_TEMPO + Math.max(1, Math.floor((Date.now()-secondoTempoKickoffAt)/60000)+1);
   }
   return 1;
 }
@@ -1215,7 +1296,10 @@ function renderStorico(){
     if(espanso){
       html += '<div class="storico-body">';
       html += renderStoricoTabellino(m);
-      html += '<button class="btn-primary" style="width:100%;margin-top:14px" onclick="esportaTabellino(\''+m.id+'\')">📄 Esporta Tabellino</button>';
+      html += '<div class="modal-actions" style="margin-top:14px">';
+      html += '<button class="btn-primary" style="flex:1" onclick="esportaTabellino(\''+m.id+'\')">📄 Esporta Tabellino</button>';
+      html += '<button class="btn-primary btn-secondary" style="flex:1;color:var(--red)" onclick="eliminaPartitaStorico(\''+m.id+'\')">🗑 Elimina</button>';
+      html += '</div>';
       html += '</div>';
     }
     html += '</div>';
@@ -1225,6 +1309,15 @@ function renderStorico(){
 function toggleStorico(id){
   storicoEspanso[id] = !storicoEspanso[id];
   renderStorico();
+}
+function eliminaPartitaStorico(id){
+  if(!confirm("Eliminare definitivamente questa partita dallo storico? L'operazione non è reversibile.")) return;
+  if(!db) return;
+  db.collection("storico_partite").doc(id).delete().then(function(){
+    storicoPartite = storicoPartite.filter(function(m){ return m.id!==id; });
+    delete storicoEspanso[id];
+    renderStorico();
+  }).catch(function(e){ alert("Errore durante l'eliminazione: " + e.message); });
 }
 function esportaTabellino(matchId){
   var m = storicoPartite.find(function(x){return x.id===matchId;});
