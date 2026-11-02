@@ -8,15 +8,16 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
-:root{--black:#0a0a0a;--black2:#111111;--black3:#1a1a1a;--black4:#222222;--black5:#2e2e2e;--white:#ffffff;--grey1:#888888;--grey2:#555555;--grey3:#333333;--border:rgba(255,255,255,0.09);--radius:10px}
+:root{--black:#0a0a0a;--black2:#111111;--black3:#1a1a1a;--black4:#222222;--black5:#2e2e2e;--white:#ffffff;--grey1:#888888;--grey2:#555555;--grey3:#333333;--border:rgba(255,255,255,0.09);--radius:10px;--red:#e05555}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
 html,body{height:100%;background:var(--black);color:var(--white);font-family:"Barlow",sans-serif}
 body{overflow:hidden}
 #app{display:flex;flex-direction:column;height:100%}
 .topbar{background:var(--black2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:11px;flex-shrink:0;z-index:10}
-.topbar-title{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:var(--white)}
+.topbar-title{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:var(--white);flex:1}
 .topbar-title span{display:block;font-size:9px;font-weight:400;color:var(--grey1);letter-spacing:1.5px;margin-top:-2px;font-family:"Barlow",sans-serif;text-transform:uppercase}
+.topbar-reset{background:none;border:1px solid var(--grey3);color:var(--grey1);border-radius:8px;padding:6px 10px;font-size:11px;font-family:"Barlow Condensed",sans-serif;font-weight:700;letter-spacing:0.5px;cursor:pointer}
 .scroll-area{flex:1;overflow-y:auto;overflow-x:hidden}
 .scroll-area::-webkit-scrollbar{width:0}
 .inner{padding:14px 16px 40px;max-width:520px;margin:0 auto}
@@ -25,6 +26,9 @@ body{overflow:hidden}
 .field-input{width:100%;background:var(--black2);border:1px solid var(--border);border-radius:8px;color:var(--white);font-family:"Barlow",sans-serif;font-size:13px;padding:9px 12px;outline:none}
 .field-input::placeholder{color:var(--grey2)}
 .btn-primary{background:var(--white);color:var(--black);border:none;border-radius:8px;padding:11px 16px;font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-secondary{background:var(--black3);color:var(--white);border:1px solid var(--grey3)}
+label.chk-label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--white);margin-top:4px;cursor:pointer}
+label.chk-label input{width:18px;height:18px}
 
 /* Login */
 .login-screen{position:fixed;inset:0;background:var(--black);display:flex;align-items:center;justify-content:center;z-index:1000}
@@ -36,12 +40,21 @@ body{overflow:hidden}
 .pin-grid{display:grid;grid-template-columns:repeat(3,64px);gap:14px;justify-content:center}
 .pin-btn{width:64px;height:64px;border-radius:50%;background:var(--black3);border:1px solid var(--grey3);color:var(--white);font-size:20px;font-family:"Barlow Condensed",sans-serif;font-weight:700;cursor:pointer}
 .pin-btn.delete,.pin-btn.enter{font-size:12px;letter-spacing:1px;background:none;border:none}
-.pin-error{color:#e05555;font-size:12px;margin-top:16px;height:16px}
+.pin-error{color:var(--red);font-size:12px;margin-top:16px;height:16px}
+
+/* Home screen */
+.home-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:18px;text-align:center}
+.home-wrap .lead{color:var(--grey1);font-size:13px;max-width:280px;line-height:1.5}
 
 /* Formation picker */
 .modulo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
 .modulo-btn{background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:10px 4px;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-align:center}
 .modulo-btn.active{background:var(--white);color:var(--black);border-color:var(--white)}
+
+.vs-box{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--black3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;cursor:pointer}
+.vs-team{font-family:"Barlow Condensed",sans-serif;font-size:16px;font-weight:900;text-transform:uppercase}
+.vs-sep{color:var(--grey2);font-size:12px;font-weight:700}
+.vs-edit{font-size:10px;color:var(--grey1);letter-spacing:1px;text-transform:uppercase}
 
 /* Pitch */
 .pitch-wrap{position:relative;width:100%;max-width:400px;margin:0 auto;aspect-ratio:2/3;border-radius:12px;overflow:hidden;border:2px solid rgba(255,255,255,0.18);background:repeating-linear-gradient(to bottom,#1f6e34 0%,#1f6e34 10%,#236f38 10%,#236f38 20%)}
@@ -59,19 +72,38 @@ body{overflow:hidden}
 .bench-chip-remove{width:26px;height:26px;border-radius:50%;background:none;border:1px solid var(--grey3);color:var(--grey1);cursor:pointer;font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .bench-add{border:1px dashed var(--grey3);background:none;color:var(--grey1);border-radius:var(--radius);padding:11px;font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:1px;text-align:center}
 
+/* Match screen */
+.score-box{background:var(--black3);border:1px solid var(--border);border-radius:var(--radius);padding:18px 14px;text-align:center;margin-bottom:16px}
+.score-teams{display:flex;align-items:center;justify-content:center;gap:14px;font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;margin-bottom:6px}
+.score-val{font-family:"Barlow Condensed",sans-serif;font-size:34px;font-weight:900;letter-spacing:1px}
+.score-timer{font-size:13px;color:var(--grey1);letter-spacing:1px;margin-top:4px}
+.score-timer.live{color:#4caf50;font-weight:700}
+.match-tabs{display:flex;gap:8px;margin-bottom:16px}
+.match-tab{flex:1;padding:9px 0;border-radius:7px;border:1px solid var(--grey3);background:transparent;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:1px;text-align:center}
+.match-tab.active{background:var(--white);color:var(--black);border-color:var(--white)}
+.gol-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.gol-btn{padding:16px 8px;border-radius:var(--radius);border:1px solid var(--border);background:var(--black3);color:var(--white);font-family:"Barlow Condensed",sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-align:center;letter-spacing:0.5px}
+.tabellino-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.tabellino-row .tr-left{flex:1}
+.tabellino-row .tr-main{font-weight:700}
+.tabellino-row .tr-sub{color:var(--grey1);font-size:11px;margin-top:2px}
+.tabellino-row .tr-remove{width:24px;height:24px;border-radius:50%;background:none;border:1px solid var(--grey3);color:var(--grey1);cursor:pointer;font-size:12px;flex-shrink:0}
+
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:flex-end;justify-content:center;z-index:500}
 .modal-overlay.open{display:flex}
-.modal-box{background:var(--black2);border:1px solid var(--grey3);border-radius:18px 18px 0 0;width:100%;max-width:500px;padding:18px 18px 34px;max-height:80vh;display:flex;flex-direction:column}
+.modal-box{background:var(--black2);border:1px solid var(--grey3);border-radius:18px 18px 0 0;width:100%;max-width:500px;padding:18px 18px 34px;max-height:85vh;display:flex;flex-direction:column}
 .modal-handle{width:36px;height:4px;background:var(--grey3);border-radius:2px;margin:0 auto 16px}
 .modal-title{font-family:"Barlow Condensed",sans-serif;font-size:18px;font-weight:900;letter-spacing:1px;margin-bottom:12px}
 .pick-list{overflow-y:auto;margin-top:12px;flex:1}
 .pick-item{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer}
-.pick-item.clear{color:#e05555}
+.pick-item.clear{color:var(--red)}
 .pick-item.disabled{opacity:0.35;pointer-events:none}
 .pick-num{width:28px;height:28px;border-radius:50%;background:var(--black3);display:flex;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:12px;color:var(--grey1);flex-shrink:0}
 .pick-name{font-size:14px;font-weight:600}
 .modal-actions{display:flex;gap:10px;margin-top:14px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;color:var(--grey1);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;font-weight:700}
 </style>
 </head>
 <body>
@@ -101,42 +133,100 @@ body{overflow:hidden}
 
 <div id="app" style="display:none">
   <div class="topbar">
-    <div class="topbar-title">MATCHDAY<span>Scualo SC</span></div>
+    <div class="topbar-title">MATCHDAY<span id="topbarSub">Scualo SC</span></div>
+    <button class="topbar-reset" id="btnResetTop" style="display:none" onclick="nuovaPartitaConfirm()">Nuova Partita</button>
   </div>
   <div class="scroll-area">
     <div class="inner">
-      <div class="roster-section-label">Modulo</div>
-      <div class="modulo-grid" id="moduloGrid"></div>
 
-      <div id="pitchSection" style="display:none">
-        <div class="pitch-wrap" id="pitchWrap">
-          <svg class="pitch-lines" viewBox="0 0 100 150" preserveAspectRatio="none">
-            <rect x="3" y="3" width="94" height="144" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-            <line x1="3" y1="75" x2="97" y2="75" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-            <circle cx="50" cy="75" r="13" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-            <circle cx="50" cy="75" r="0.8" fill="rgba(255,255,255,0.35)"/>
-            <rect x="20" y="3" width="60" height="24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-            <rect x="36" y="3" width="28" height="8" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-            <circle cx="50" cy="19" r="0.8" fill="rgba(255,255,255,0.35)"/>
-            <rect x="41" y="0" width="18" height="3" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-            <rect x="20" y="123" width="60" height="24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-            <rect x="36" y="139" width="28" height="8" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-            <circle cx="50" cy="131" r="0.8" fill="rgba(255,255,255,0.35)"/>
-            <rect x="41" y="147" width="18" height="3" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-          </svg>
-          <div id="pitchSlots"></div>
+      <!-- SCREEN: HOME -->
+      <div id="screenHome" style="display:none">
+        <div class="home-wrap">
+          <div class="lead">Nessuna partita impostata al momento.<br>Inizia impostando le squadre e la formazione.</div>
+          <button class="btn-primary" onclick="nuovaPartita()">+ Nuova Partita</button>
+        </div>
+      </div>
+
+      <!-- SCREEN: FORMAZIONE -->
+      <div id="screenFormazione" style="display:none">
+        <div class="vs-box" onclick="apriPickerAvversario()">
+          <div class="vs-team" id="vsNoi">SCUALO SC</div>
+          <div class="vs-sep">VS</div>
+          <div class="vs-team" id="vsAvv">—</div>
+        </div>
+        <div class="vs-edit" style="text-align:center;margin-bottom:16px">Tocca per cambiare avversario</div>
+
+        <div class="roster-section-label">Modulo</div>
+        <div class="modulo-grid" id="moduloGrid"></div>
+
+        <div id="pitchSection" style="display:none">
+          <div class="pitch-wrap" id="pitchWrap">
+            <svg class="pitch-lines" viewBox="0 0 100 150" preserveAspectRatio="none">
+              <rect x="3" y="3" width="94" height="144" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+              <line x1="3" y1="75" x2="97" y2="75" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+              <circle cx="50" cy="75" r="13" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+              <circle cx="50" cy="75" r="0.8" fill="rgba(255,255,255,0.35)"/>
+              <rect x="20" y="3" width="60" height="24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+              <rect x="36" y="3" width="28" height="8" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+              <circle cx="50" cy="19" r="0.8" fill="rgba(255,255,255,0.35)"/>
+              <rect x="41" y="0" width="18" height="3" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+              <rect x="20" y="123" width="60" height="24" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+              <rect x="36" y="139" width="28" height="8" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+              <circle cx="50" cy="131" r="0.8" fill="rgba(255,255,255,0.35)"/>
+              <rect x="41" y="147" width="18" height="3" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+            </svg>
+            <div id="pitchSlots"></div>
+          </div>
+
+          <div class="roster-section-label" style="margin-top:22px">Panchina</div>
+          <div class="bench-list" id="benchList"></div>
+          <button class="bench-add" style="width:100%;margin-top:10px" onclick="openPicker('panchina',null)">+ Aggiungi in panchina</button>
+
+          <button class="btn-primary" style="width:100%;margin-top:24px" onclick="vaiAllaGestione()">Prossimo</button>
+        </div>
+      </div>
+
+      <!-- SCREEN: PARTITA -->
+      <div id="screenPartita" style="display:none">
+        <div class="score-box">
+          <div class="score-teams"><span id="ps-noi">SCUALO SC</span><span class="vs-sep">vs</span><span id="ps-avv">—</span></div>
+          <div class="score-val"><span id="ps-punt-noi">0</span> — <span id="ps-punt-avv">0</span></div>
+          <div class="score-timer" id="ps-timer">Partita non iniziata</div>
+          <button class="btn-primary" id="btnIniziaPartita" style="width:100%;margin-top:14px" onclick="iniziaPartita()">Inizio Partita</button>
         </div>
 
-        <div class="roster-section-label" style="margin-top:22px">Panchina</div>
-        <div class="bench-list" id="benchList"></div>
-        <button class="bench-add" style="width:100%;margin-top:10px" onclick="openPicker('panchina',null)">+ Aggiungi in panchina</button>
+        <div class="match-tabs">
+          <button class="match-tab active" onclick="matchTab(this,'gol')">Gol</button>
+        </div>
 
-        <button class="btn-primary" style="width:100%;margin-top:24px" onclick="salvaFormazione()">Salva Formazione</button>
+        <div id="matchPanelGol">
+          <div class="gol-btns">
+            <button class="gol-btn" onclick="apriModalGolNostro()">⚽ Gol Nostro</button>
+            <button class="gol-btn" onclick="golAvversari()">⚽ Gol Avversari</button>
+          </div>
+          <div class="roster-section-label">Tabellino</div>
+          <div id="tabellinoList"><div class="empty-state">Nessun gol segnato</div></div>
+        </div>
       </div>
+
     </div>
   </div>
 </div>
 
+<!-- Modal: scelta avversario -->
+<div class="modal-overlay" id="modalAvversario" onclick="if(event.target===this)closeModalAvversario()">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Squadra avversaria</div>
+    <input class="field-input" id="avvSearch" placeholder="Cerca squadra..." oninput="renderAvversarioList()">
+    <div class="pick-list" id="avvList"></div>
+    <div class="modal-actions">
+      <button class="btn-primary btn-secondary" style="width:100%" onclick="closeModalAvversario()">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: scelta giocatore (titolare/panchina) -->
 <div class="modal-overlay" id="modalPick" onclick="if(event.target===this)closePicker()">
   <div class="modal-box">
     <div class="modal-handle"></div>
@@ -144,7 +234,28 @@ body{overflow:hidden}
     <input class="field-input" id="pickSearch" placeholder="Cerca giocatore..." oninput="renderPickList()">
     <div class="pick-list" id="pickList"></div>
     <div class="modal-actions">
-      <button class="btn-primary" style="background:var(--black3);color:var(--white);width:100%" onclick="closePicker()">Chiudi</button>
+      <button class="btn-primary btn-secondary" style="width:100%" onclick="closePicker()">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: gol nostro -->
+<div class="modal-overlay" id="modalGolNostro" onclick="if(event.target===this)closeModalGolNostro()">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Gol Scualo SC</div>
+    <div class="form-group">
+      <label class="form-label">Marcatore *</label>
+      <select class="field-input" id="gol-marcatore"><option value="">Seleziona...</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Assist</label>
+      <select class="field-input" id="gol-assist"><option value="">Nessun assist</option></select>
+    </div>
+    <label class="chk-label"><input type="checkbox" id="gol-rigore"> Gol su rigore</label>
+    <div class="modal-actions">
+      <button class="btn-primary btn-secondary" style="flex:1" onclick="closeModalGolNostro()">Annulla</button>
+      <button class="btn-primary" style="flex:1" onclick="confermaGolNostro()">Conferma Gol</button>
     </div>
   </div>
 </div>
@@ -171,6 +282,15 @@ function checkPin(){
     setTimeout(function(){document.getElementById("pinError").textContent="";},2000);
   }
 }
+
+// Squadre del nostro campionato (come compaiono in calendario/comunicati), escludendo noi stessi
+var TEAM_CANON = [
+  "NEW DREAM TEAM","DIAVOLI ROSSI","MIRAMARE UNITED","FRATTE UNITED","REAL SAN VITO",
+  "GALAXY FORNO'","LOKOMOTIV","S.ANDREA","SANTA AQUILINA","FORUM LIVII","ANFITEATRO",
+  "MONTALBANO TORCONCA","VERUCCHIESE","THIRTEEN FOOTBALL","OLIMPIA CROCETTA",
+  "POLISPORTIVA SAVIO","AMATORI SISA","PIANVENTENA","TORO SIDERALE",
+  "BORGHIGIANA","VIS SERVI CALCIO"
+];
 
 // FORMAZIONI: ogni modulo è un array di 11 slot {id,role,label,x,y}
 // x,y in percentuale (0-100) rispetto al campo; y=0 porta avversaria (attacco), y=100 nostra porta (difesa)
@@ -255,24 +375,32 @@ var FORMAZIONI = {
   ]
 };
 
+// STATO PARTITA
+var fase = null;            // null | 'formazione' | 'gestione' | 'in_corso'
+var avversario = null;
 var selectedFormazione = null;
-var titolari = {};  // slotId -> giocatoreId
-var panchina = [];  // array di giocatoreId
-var pickCtx = null; // {type:'titolare'|'panchina', slotId, benchIndex}
+var titolari = {};          // slotId -> giocatoreId
+var panchina = [];          // array di giocatoreId
+var punteggioNoi = 0, punteggioAvv = 0;
+var kickoffAt = null;       // ms epoch
+var eventi = [];            // {tipo,minuto,giocatoreId,giocatoreNome,assistId,assistNome,rigore,ts}
+var pickCtx = null;
+var timerHandle = null;
 
 function initApp(){
   try{
     firebase.initializeApp({apiKey:"AIzaSyCNpd3eUV7--Roa5QxdwdM9-HfbmPIbIPc",authDomain:"scualosc-43817.firebaseapp.com",projectId:"scualosc-43817",storageBucket:"scualosc-43817.firebasestorage.app",messagingSenderId:"644097253151",appId:"1:644097253151:web:a29a52cca556a99a27da2a"});
     db=firebase.firestore();
   }catch(e){}
-  renderModuloGrid();
-  if(!db) return;
+  if(!db){ renderScreens(); return; }
   db.collection("giocatori").orderBy("cognome").get().then(function(snap){
     giocatori = snap.docs.map(function(d){ var o=d.data(); o.id=d.id; return o; }).filter(function(g){ return g.ruolo !== "dirigente"; });
     return db.collection("matchday").doc("current").get();
   }).then(function(doc){
     if(doc && doc.exists){
       var data = doc.data();
+      fase = data.fase || null;
+      avversario = data.avversario || null;
       if(data.formazione && FORMAZIONI[data.formazione]){
         selectedFormazione = data.formazione;
         titolari = {};
@@ -283,13 +411,112 @@ function initApp(){
           return giocatori.some(function(g){return g.id===id;});
         });
       }
+      punteggioNoi = data.punteggioNoi || 0;
+      punteggioAvv = data.punteggioAvv || 0;
+      kickoffAt = data.kickoffAt ? new Date(data.kickoffAt).getTime() : null;
+      eventi = data.eventi || [];
     }
-    renderModuloGrid();
-    if(selectedFormazione){ renderPitch(); document.getElementById("pitchSection").style.display="block"; }
-    renderBench();
-  }).catch(function(e){ console.error(e); });
+    renderScreens();
+  }).catch(function(e){ console.error(e); renderScreens(); });
 }
 
+function persistState(){
+  if(!db) return;
+  var out = {
+    fase: fase,
+    avversario: avversario,
+    formazione: selectedFormazione,
+    punteggioNoi: punteggioNoi,
+    punteggioAvv: punteggioAvv,
+    kickoffAt: kickoffAt ? new Date(kickoffAt).toISOString() : null,
+    eventi: eventi,
+    updatedAt: new Date().toISOString()
+  };
+  if(selectedFormazione){
+    var slots = FORMAZIONI[selectedFormazione];
+    out.titolari = slots.map(function(slot){
+      var gid = titolari[slot.id];
+      var g = gid ? giocatori.find(function(x){return x.id===gid;}) : null;
+      return { slotId: slot.id, role: slot.role, label: slot.label, x: slot.x, y: slot.y,
+        giocatoreId: gid || null, nome: g?g.nome:null, cognome: g?g.cognome:null, numero: g?g.numero:null };
+    });
+    out.panchina = panchina.map(function(gid){
+      var g = giocatori.find(function(x){return x.id===gid;});
+      return { giocatoreId: gid, nome: g?g.nome:null, cognome: g?g.cognome:null, numero: g?g.numero:null };
+    });
+  }
+  db.collection("matchday").doc("current").set(out).catch(function(e){ console.error(e); });
+}
+
+function renderScreens(){
+  document.getElementById("screenHome").style.display = fase ? "none" : "block";
+  document.getElementById("screenFormazione").style.display = (fase==="formazione") ? "block" : "none";
+  document.getElementById("screenPartita").style.display = (fase==="gestione"||fase==="in_corso") ? "block" : "none";
+  document.getElementById("btnResetTop").style.display = fase ? "inline-block" : "none";
+  document.getElementById("topbarSub").textContent = avversario ? ("Scualo SC vs " + avversario) : "Scualo SC";
+
+  if(fase==="formazione"){
+    document.getElementById("vsAvv").textContent = avversario || "—";
+    renderModuloGrid();
+    if(selectedFormazione){
+      renderPitch();
+      renderBench();
+      document.getElementById("pitchSection").style.display = "block";
+    } else {
+      document.getElementById("pitchSection").style.display = "none";
+    }
+  }
+  if(fase==="gestione"||fase==="in_corso"){
+    renderPartita();
+  }
+}
+
+// ---- NUOVA PARTITA ----
+function nuovaPartitaConfirm(){
+  if(!confirm("Iniziare una nuova partita? I dati della partita attuale (formazione, punteggio, tabellino) andranno persi.")) return;
+  resetStatoCompleto();
+  renderScreens();
+  persistState();
+}
+function resetStatoCompleto(){
+  fase = null; avversario = null; selectedFormazione = null;
+  titolari = {}; panchina = [];
+  punteggioNoi = 0; punteggioAvv = 0; kickoffAt = null; eventi = [];
+  stopTimer();
+}
+function nuovaPartita(){
+  apriPickerAvversario();
+}
+
+// ---- SCELTA AVVERSARIO ----
+function apriPickerAvversario(){
+  document.getElementById("avvSearch").value = "";
+  renderAvversarioList();
+  document.getElementById("modalAvversario").classList.add("open");
+}
+function closeModalAvversario(){
+  document.getElementById("modalAvversario").classList.remove("open");
+}
+function renderAvversarioList(){
+  var q = (document.getElementById("avvSearch").value||"").toLowerCase();
+  var list = document.getElementById("avvList");
+  list.innerHTML = "";
+  TEAM_CANON.filter(function(t){ return !q || t.toLowerCase().indexOf(q)>=0; }).forEach(function(t){
+    var item = document.createElement("div");
+    item.className = "pick-item";
+    item.innerHTML = '<div class="pick-name">'+t+'</div>';
+    item.onclick = function(){
+      avversario = t;
+      if(!fase) fase = "formazione";
+      closeModalAvversario();
+      renderScreens();
+      persistState();
+    };
+    list.appendChild(item);
+  });
+}
+
+// ---- FORMAZIONE ----
 function renderModuloGrid(){
   var grid = document.getElementById("moduloGrid");
   grid.innerHTML = "";
@@ -301,7 +528,6 @@ function renderModuloGrid(){
     grid.appendChild(btn);
   });
 }
-
 function selectFormazione(key){
   if(selectedFormazione===key) return;
   var haAssegnazioni = Object.keys(titolari).length>0 || panchina.length>0;
@@ -315,12 +541,8 @@ function selectFormazione(key){
   renderPitch();
   renderBench();
   document.getElementById("pitchSection").style.display = "block";
+  persistState();
 }
-
-function giocatoreLabel(g){
-  return (g.numero ? g.numero+". " : "") + (g.cognome||"") + " " + (g.nome||"");
-}
-
 function renderPitch(){
   var cont = document.getElementById("pitchSlots");
   cont.innerHTML = "";
@@ -344,7 +566,6 @@ function renderPitch(){
     cont.appendChild(wrap);
   });
 }
-
 function renderBench(){
   var list = document.getElementById("benchList");
   list.innerHTML = "";
@@ -372,12 +593,11 @@ function renderBench(){
     var rm = document.createElement("button");
     rm.className = "bench-chip-remove";
     rm.textContent = "✕";
-    rm.onclick = function(ev){ ev.stopPropagation(); panchina.splice(idx,1); renderBench(); };
+    rm.onclick = function(ev){ ev.stopPropagation(); panchina.splice(idx,1); renderBench(); persistState(); };
     chip.appendChild(rm);
     list.appendChild(chip);
   });
 }
-
 function assegnatiAltrove(giocatoreId, exclude){
   var inTitolari = Object.keys(titolari).some(function(sid){
     return titolari[sid]===giocatoreId && sid!==(exclude&&exclude.slotId);
@@ -387,7 +607,6 @@ function assegnatiAltrove(giocatoreId, exclude){
   });
   return inTitolari || inPanchina;
 }
-
 function openPicker(type, slotId, benchIndex){
   pickCtx = {type:type, slotId:slotId, benchIndex:(typeof benchIndex==="number"?benchIndex:null)};
   document.getElementById("pickTitle").textContent = type==="titolare" ?
@@ -417,7 +636,7 @@ function renderPickList(){
     clearItem.onclick = function(){
       if(pickCtx.type==="titolare") delete titolari[pickCtx.slotId];
       else if(pickCtx.benchIndex!=null) panchina.splice(pickCtx.benchIndex,1);
-      closePicker(); renderPitch(); renderBench();
+      closePicker(); renderPitch(); renderBench(); persistState();
     };
     list.appendChild(clearItem);
   }
@@ -446,7 +665,7 @@ function renderPickList(){
         } else {
           panchina.push(g.id);
         }
-        closePicker(); renderPitch(); renderBench();
+        closePicker(); renderPitch(); renderBench(); persistState();
       };
     }
     list.appendChild(item);
@@ -459,34 +678,153 @@ function renderPickList(){
     list.appendChild(e);
   }
 }
+function vaiAllaGestione(){
+  if(!selectedFormazione){ alert("Seleziona prima un modulo."); return; }
+  var mancanti = FORMAZIONI[selectedFormazione].filter(function(s){ return !titolari[s.id]; }).length;
+  if(mancanti && !confirm(mancanti+" posizioni non sono ancora state assegnate. Continuare comunque?")) return;
+  fase = "gestione";
+  renderScreens();
+  persistState();
+}
 
-function salvaFormazione(){
-  if(!db || !selectedFormazione) { alert("Seleziona prima un modulo."); return; }
-  var slots = FORMAZIONI[selectedFormazione];
-  var titolariOut = slots.map(function(slot){
-    var gid = titolari[slot.id];
-    var g = gid ? giocatori.find(function(x){return x.id===gid;}) : null;
-    return {
-      slotId: slot.id, role: slot.role, label: slot.label, x: slot.x, y: slot.y,
-      giocatoreId: gid || null,
-      nome: g ? g.nome : null, cognome: g ? g.cognome : null, numero: g ? g.numero : null
-    };
+// ---- GESTIONE PARTITA ----
+function giocatoriInCampo(){
+  var ids = [];
+  Object.keys(titolari).forEach(function(sid){ if(titolari[sid]) ids.push(titolari[sid]); });
+  panchina.forEach(function(gid){ if(gid) ids.push(gid); });
+  var seen = {};
+  return ids.filter(function(id){ if(seen[id]) return false; seen[id]=1; return true; })
+    .map(function(id){ return giocatori.find(function(g){return g.id===id;}); })
+    .filter(Boolean);
+}
+function calcolaMinutoCorrente(){
+  if(!kickoffAt) return 1;
+  return Math.max(1, Math.floor((Date.now()-kickoffAt)/60000)+1);
+}
+function formatTimer(){
+  if(!kickoffAt) return "00:00";
+  var sec = Math.max(0, Math.floor((Date.now()-kickoffAt)/1000));
+  var mm = Math.floor(sec/60), ss = sec%60;
+  return (mm<10?"0":"")+mm+":"+(ss<10?"0":"")+ss;
+}
+function stopTimer(){
+  if(timerHandle){ clearInterval(timerHandle); timerHandle=null; }
+}
+function startTimerIfNeeded(){
+  stopTimer();
+  if(fase==="in_corso" && kickoffAt){
+    timerHandle = setInterval(function(){
+      var el = document.getElementById("ps-timer");
+      if(el) el.textContent = formatTimer() + " · " + calcolaMinutoCorrente() + "'";
+    },1000);
+  }
+}
+function iniziaPartita(){
+  if(!confirm("L'arbitro ha fischiato l'inizio? Il cronometro partirà ora.")) return;
+  kickoffAt = Date.now();
+  fase = "in_corso";
+  persistState();
+  renderPartita();
+}
+function matchTab(btn, tab){
+  // un'unica sezione "Gol" per ora; predisposto per future sezioni (es. ammonizioni, sostituzioni)
+  document.querySelectorAll(".match-tab").forEach(function(b){ b.classList.remove("active"); });
+  btn.classList.add("active");
+  document.getElementById("matchPanelGol").style.display = (tab==="gol") ? "block" : "none";
+}
+function renderPartita(){
+  document.getElementById("ps-noi").textContent = "SCUALO SC";
+  document.getElementById("ps-avv").textContent = avversario || "—";
+  document.getElementById("ps-punt-noi").textContent = punteggioNoi;
+  document.getElementById("ps-punt-avv").textContent = punteggioAvv;
+  var btnInizio = document.getElementById("btnIniziaPartita");
+  var timerEl = document.getElementById("ps-timer");
+  if(fase==="in_corso"){
+    btnInizio.style.display = "none";
+    timerEl.className = "score-timer live";
+    timerEl.textContent = formatTimer() + " · " + calcolaMinutoCorrente() + "'";
+    startTimerIfNeeded();
+  } else {
+    btnInizio.style.display = "flex";
+    timerEl.className = "score-timer";
+    timerEl.textContent = "Partita non iniziata";
+    stopTimer();
+  }
+  renderTabellino();
+}
+function renderTabellino(){
+  var list = document.getElementById("tabellinoList");
+  if(!eventi.length){
+    list.innerHTML = '<div class="empty-state">Nessun gol segnato</div>';
+    return;
+  }
+  var ordinati = eventi.map(function(e,idx){ return {e:e, idx:idx}; }).sort(function(a,b){ return (a.e.minuto||0)-(b.e.minuto||0); });
+  var html = "";
+  ordinati.forEach(function(item){
+    var e = item.e;
+    var main, sub = "";
+    if(e.tipo === "nostro"){
+      main = "⚽ " + (e.giocatoreCognome||"?") + (e.rigore ? " (R)" : "") + " " + e.minuto + "'";
+      if(e.assistCognome) sub = "assist: " + e.assistCognome;
+    } else {
+      main = "⚽ " + (avversario||"Avversari") + " " + e.minuto + "'";
+    }
+    html += '<div class="tabellino-row"><div class="tr-left"><div class="tr-main">'+main+'</div>' + (sub?('<div class="tr-sub">'+sub+'</div>'):'') + '</div><button class="tr-remove" onclick="rimuoviEvento('+item.idx+')">✕</button></div>';
   });
-  var panchinaOut = panchina.map(function(gid){
-    var g = giocatori.find(function(x){return x.id===gid;});
-    return { giocatoreId: gid, nome: g ? g.nome : null, cognome: g ? g.cognome : null, numero: g ? g.numero : null };
+  list.innerHTML = html;
+}
+function rimuoviEvento(idx){
+  var e = eventi[idx];
+  if(!e) return;
+  if(!confirm("Rimuovere questo evento dal tabellino?")) return;
+  if(e.tipo==="nostro") punteggioNoi = Math.max(0, punteggioNoi-1);
+  else punteggioAvv = Math.max(0, punteggioAvv-1);
+  eventi.splice(idx,1);
+  persistState();
+  renderPartita();
+}
+function golAvversari(){
+  var minuto = calcolaMinutoCorrente();
+  eventi.push({ tipo:"avversario", minuto:minuto, ts:Date.now() });
+  punteggioAvv++;
+  persistState();
+  renderPartita();
+}
+function apriModalGolNostro(){
+  var sel1 = document.getElementById("gol-marcatore");
+  var sel2 = document.getElementById("gol-assist");
+  sel1.innerHTML = '<option value="">Seleziona...</option>';
+  sel2.innerHTML = '<option value="">Nessun assist</option>';
+  giocatoriInCampo().forEach(function(g){
+    var label = g.cognome + " " + g.nome + (g.numero?(" (N."+g.numero+")"):"");
+    var o1 = document.createElement("option"); o1.value=g.id; o1.textContent=label; sel1.appendChild(o1);
+    var o2 = document.createElement("option"); o2.value=g.id; o2.textContent=label; sel2.appendChild(o2);
   });
-  var mancanti = titolariOut.filter(function(t){return !t.giocatoreId;}).length;
-  db.collection("matchday").doc("current").set({
-    formazione: selectedFormazione,
-    titolari: titolariOut,
-    panchina: panchinaOut,
-    updatedAt: new Date().toISOString()
-  }).then(function(){
-    alert("Formazione salvata." + (mancanti ? ("\n(" + mancanti + " posizioni ancora da assegnare)") : ""));
-  }).catch(function(e){
-    alert("Errore durante il salvataggio: " + e.message);
+  document.getElementById("gol-rigore").checked = false;
+  document.getElementById("modalGolNostro").classList.add("open");
+}
+function closeModalGolNostro(){
+  document.getElementById("modalGolNostro").classList.remove("open");
+}
+function confermaGolNostro(){
+  var marcId = document.getElementById("gol-marcatore").value;
+  var assistId = document.getElementById("gol-assist").value;
+  var rigore = document.getElementById("gol-rigore").checked;
+  if(!marcId){ alert("Seleziona il marcatore."); return; }
+  if(assistId === marcId){ alert("L'assist non può coincidere con il marcatore."); return; }
+  var marc = giocatori.find(function(g){return g.id===marcId;});
+  var ass = assistId ? giocatori.find(function(g){return g.id===assistId;}) : null;
+  var minuto = calcolaMinutoCorrente();
+  eventi.push({
+    tipo: "nostro", minuto: minuto,
+    giocatoreId: marcId, giocatoreNome: marc?marc.nome:null, giocatoreCognome: marc?marc.cognome:null,
+    assistId: assistId || null, assistNome: ass?ass.nome:null, assistCognome: ass?ass.cognome:null,
+    rigore: !!rigore, ts: Date.now()
   });
+  punteggioNoi++;
+  persistState();
+  closeModalGolNostro();
+  renderPartita();
 }
 </script>
 </body>
