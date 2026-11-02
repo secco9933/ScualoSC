@@ -197,6 +197,8 @@ label.chk-label input{width:18px;height:18px}
 
         <div class="match-tabs">
           <button class="match-tab active" onclick="matchTab(this,'gol')">Gol</button>
+          <button class="match-tab" onclick="matchTab(this,'sostituzioni')">Sostituzioni</button>
+          <button class="match-tab" onclick="matchTab(this,'ammonizioni')">Ammonizioni</button>
         </div>
 
         <div id="matchPanelGol">
@@ -205,7 +207,19 @@ label.chk-label input{width:18px;height:18px}
             <button class="gol-btn" onclick="golAvversari()">⚽ Gol Avversari</button>
           </div>
           <div class="roster-section-label">Tabellino</div>
-          <div id="tabellinoList"><div class="empty-state">Nessun gol segnato</div></div>
+          <div id="tabellinoListGol"><div class="empty-state">Nessun gol segnato</div></div>
+        </div>
+
+        <div id="matchPanelSost" style="display:none">
+          <button class="gol-btn" style="width:100%;margin-bottom:20px" onclick="apriModalSostituzione()">🔁 Sostituzione</button>
+          <div class="roster-section-label">Tabellino</div>
+          <div id="tabellinoListSost"><div class="empty-state">Nessuna sostituzione registrata</div></div>
+        </div>
+
+        <div id="matchPanelAmm" style="display:none">
+          <button class="gol-btn" style="width:100%;margin-bottom:20px" onclick="apriModalAmmonizione()">🟨 Ammonizione</button>
+          <div class="roster-section-label">Tabellino</div>
+          <div id="tabellinoListAmm"><div class="empty-state">Nessuna ammonizione registrata</div></div>
         </div>
       </div>
 
@@ -256,6 +270,46 @@ label.chk-label input{width:18px;height:18px}
     <div class="modal-actions">
       <button class="btn-primary btn-secondary" style="flex:1" onclick="closeModalGolNostro()">Annulla</button>
       <button class="btn-primary" style="flex:1" onclick="confermaGolNostro()">Conferma Gol</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: sostituzione -->
+<div class="modal-overlay" id="modalSostituzione" onclick="if(event.target===this)closeModalSostituzione()">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Sostituzione</div>
+    <div class="form-group">
+      <label class="form-label">Esce *</label>
+      <select class="field-input" id="sost-esce"><option value="">Seleziona...</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Entra *</label>
+      <select class="field-input" id="sost-entra"><option value="">Seleziona...</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary btn-secondary" style="flex:1" onclick="closeModalSostituzione()">Annulla</button>
+      <button class="btn-primary" style="flex:1" onclick="confermaSostituzione()">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: ammonizione -->
+<div class="modal-overlay" id="modalAmmonizione" onclick="if(event.target===this)closeModalAmmonizione()">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Ammonizione</div>
+    <div class="form-group">
+      <label class="form-label">Giocatore *</label>
+      <select class="field-input" id="amm-giocatore"><option value="">Seleziona...</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nota (facoltativa)</label>
+      <input class="field-input" id="amm-nota" placeholder="Es. proteste, fallo di gioco...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary btn-secondary" style="flex:1" onclick="closeModalAmmonizione()">Annulla</button>
+      <button class="btn-primary" style="flex:1" onclick="confermaAmmonizione()">Conferma</button>
     </div>
   </div>
 </div>
@@ -688,12 +742,25 @@ function vaiAllaGestione(){
 }
 
 // ---- GESTIONE PARTITA ----
-function giocatoriInCampo(){
-  var ids = [];
-  Object.keys(titolari).forEach(function(sid){ if(titolari[sid]) ids.push(titolari[sid]); });
-  panchina.forEach(function(gid){ if(gid) ids.push(gid); });
-  var seen = {};
-  return ids.filter(function(id){ if(seen[id]) return false; seen[id]=1; return true; })
+// Giocatori attualmente in campo, tenendo conto delle sostituzioni già registrate
+function giocatoriInCampoAttuale(){
+  var inCampo = {};
+  Object.keys(titolari).forEach(function(sid){ if(titolari[sid]) inCampo[titolari[sid]]=true; });
+  eventi.filter(function(e){ return e.tipo==="sostituzione"; })
+    .sort(function(a,b){ return (a.ts||0)-(b.ts||0); })
+    .forEach(function(e){
+      if(e.escId) delete inCampo[e.escId];
+      if(e.entraId) inCampo[e.entraId]=true;
+    });
+  return Object.keys(inCampo)
+    .map(function(id){ return giocatori.find(function(g){return g.id===id;}); })
+    .filter(Boolean);
+}
+// Riserve in panchina non ancora entrate in campo
+function panchinaDisponibileAttuale(){
+  var usati = {};
+  eventi.filter(function(e){ return e.tipo==="sostituzione"; }).forEach(function(e){ if(e.entraId) usati[e.entraId]=true; });
+  return panchina.filter(function(id){ return !usati[id]; })
     .map(function(id){ return giocatori.find(function(g){return g.id===id;}); })
     .filter(Boolean);
 }
@@ -727,10 +794,11 @@ function iniziaPartita(){
   renderPartita();
 }
 function matchTab(btn, tab){
-  // un'unica sezione "Gol" per ora; predisposto per future sezioni (es. ammonizioni, sostituzioni)
   document.querySelectorAll(".match-tab").forEach(function(b){ b.classList.remove("active"); });
   btn.classList.add("active");
   document.getElementById("matchPanelGol").style.display = (tab==="gol") ? "block" : "none";
+  document.getElementById("matchPanelSost").style.display = (tab==="sostituzioni") ? "block" : "none";
+  document.getElementById("matchPanelAmm").style.display = (tab==="ammonizioni") ? "block" : "none";
 }
 function renderPartita(){
   document.getElementById("ps-noi").textContent = "SCUALO SC";
@@ -752,33 +820,43 @@ function renderPartita(){
   }
   renderTabellino();
 }
-function renderTabellino(){
-  var list = document.getElementById("tabellinoList");
-  if(!eventi.length){
-    list.innerHTML = '<div class="empty-state">Nessun gol segnato</div>';
+function formatEventoRow(e, idx){
+  var main, sub = "";
+  if(e.tipo === "nostro"){
+    main = "⚽ " + (e.giocatoreCognome||"?") + (e.rigore ? " (R)" : "") + " " + e.minuto + "'";
+    if(e.assistCognome) sub = "assist: " + e.assistCognome;
+  } else if(e.tipo === "avversario"){
+    main = "⚽ " + (avversario||"Avversari") + " " + e.minuto + "'";
+  } else if(e.tipo === "sostituzione"){
+    main = "🔁 " + (e.escCognome||"?") + " ⟶ " + (e.entraCognome||"?") + " " + e.minuto + "'";
+  } else if(e.tipo === "ammonizione"){
+    main = "🟨 " + (e.giocatoreCognome||"?") + " " + e.minuto + "'";
+    if(e.nota) sub = e.nota;
+  }
+  return '<div class="tabellino-row"><div class="tr-left"><div class="tr-main">'+main+'</div>' + (sub?('<div class="tr-sub">'+sub+'</div>'):'') + '</div><button class="tr-remove" onclick="rimuoviEvento('+idx+')">✕</button></div>';
+}
+function renderTabellinoFiltrato(containerId, tipi, vuotoMsg){
+  var list = document.getElementById(containerId);
+  if(!list) return;
+  var filtrati = eventi.map(function(e,idx){ return {e:e, idx:idx}; }).filter(function(item){ return tipi.indexOf(item.e.tipo)>=0; });
+  if(!filtrati.length){
+    list.innerHTML = '<div class="empty-state">'+vuotoMsg+'</div>';
     return;
   }
-  var ordinati = eventi.map(function(e,idx){ return {e:e, idx:idx}; }).sort(function(a,b){ return (a.e.minuto||0)-(b.e.minuto||0); });
-  var html = "";
-  ordinati.forEach(function(item){
-    var e = item.e;
-    var main, sub = "";
-    if(e.tipo === "nostro"){
-      main = "⚽ " + (e.giocatoreCognome||"?") + (e.rigore ? " (R)" : "") + " " + e.minuto + "'";
-      if(e.assistCognome) sub = "assist: " + e.assistCognome;
-    } else {
-      main = "⚽ " + (avversario||"Avversari") + " " + e.minuto + "'";
-    }
-    html += '<div class="tabellino-row"><div class="tr-left"><div class="tr-main">'+main+'</div>' + (sub?('<div class="tr-sub">'+sub+'</div>'):'') + '</div><button class="tr-remove" onclick="rimuoviEvento('+item.idx+')">✕</button></div>';
-  });
-  list.innerHTML = html;
+  filtrati.sort(function(a,b){ return (a.e.minuto||0)-(b.e.minuto||0); });
+  list.innerHTML = filtrati.map(function(item){ return formatEventoRow(item.e, item.idx); }).join("");
+}
+function renderTabellino(){
+  renderTabellinoFiltrato("tabellinoListGol", ["nostro","avversario"], "Nessun gol segnato");
+  renderTabellinoFiltrato("tabellinoListSost", ["sostituzione"], "Nessuna sostituzione registrata");
+  renderTabellinoFiltrato("tabellinoListAmm", ["ammonizione"], "Nessuna ammonizione registrata");
 }
 function rimuoviEvento(idx){
   var e = eventi[idx];
   if(!e) return;
   if(!confirm("Rimuovere questo evento dal tabellino?")) return;
   if(e.tipo==="nostro") punteggioNoi = Math.max(0, punteggioNoi-1);
-  else punteggioAvv = Math.max(0, punteggioAvv-1);
+  else if(e.tipo==="avversario") punteggioAvv = Math.max(0, punteggioAvv-1);
   eventi.splice(idx,1);
   persistState();
   renderPartita();
@@ -795,7 +873,7 @@ function apriModalGolNostro(){
   var sel2 = document.getElementById("gol-assist");
   sel1.innerHTML = '<option value="">Seleziona...</option>';
   sel2.innerHTML = '<option value="">Nessun assist</option>';
-  giocatoriInCampo().forEach(function(g){
+  giocatoriInCampoAttuale().forEach(function(g){
     var label = g.cognome + " " + g.nome + (g.numero?(" (N."+g.numero+")"):"");
     var o1 = document.createElement("option"); o1.value=g.id; o1.textContent=label; sel1.appendChild(o1);
     var o2 = document.createElement("option"); o2.value=g.id; o2.textContent=label; sel2.appendChild(o2);
@@ -824,6 +902,80 @@ function confermaGolNostro(){
   punteggioNoi++;
   persistState();
   closeModalGolNostro();
+  renderPartita();
+}
+
+function apriModalSostituzione(){
+  var selE = document.getElementById("sost-esce");
+  var selN = document.getElementById("sost-entra");
+  selE.innerHTML = '<option value="">Seleziona...</option>';
+  selN.innerHTML = '<option value="">Seleziona...</option>';
+  giocatoriInCampoAttuale().forEach(function(g){
+    var o = document.createElement("option");
+    o.value = g.id; o.textContent = g.cognome + " " + g.nome + (g.numero?(" (N."+g.numero+")"):"");
+    selE.appendChild(o);
+  });
+  panchinaDisponibileAttuale().forEach(function(g){
+    var o = document.createElement("option");
+    o.value = g.id; o.textContent = g.cognome + " " + g.nome + (g.numero?(" (N."+g.numero+")"):"");
+    selN.appendChild(o);
+  });
+  if(!giocatoriInCampoAttuale().length || !panchinaDisponibileAttuale().length){
+    alert("Non ci sono abbastanza giocatori disponibili per effettuare una sostituzione.");
+    return;
+  }
+  document.getElementById("modalSostituzione").classList.add("open");
+}
+function closeModalSostituzione(){
+  document.getElementById("modalSostituzione").classList.remove("open");
+}
+function confermaSostituzione(){
+  var escId = document.getElementById("sost-esce").value;
+  var entraId = document.getElementById("sost-entra").value;
+  if(!escId || !entraId){ alert("Seleziona entrambi i giocatori."); return; }
+  var esc = giocatori.find(function(g){return g.id===escId;});
+  var entra = giocatori.find(function(g){return g.id===entraId;});
+  var minuto = calcolaMinutoCorrente();
+  eventi.push({
+    tipo: "sostituzione", minuto: minuto,
+    escId: escId, escNome: esc?esc.nome:null, escCognome: esc?esc.cognome:null,
+    entraId: entraId, entraNome: entra?entra.nome:null, entraCognome: entra?entra.cognome:null,
+    ts: Date.now()
+  });
+  persistState();
+  closeModalSostituzione();
+  renderPartita();
+}
+
+function apriModalAmmonizione(){
+  var sel = document.getElementById("amm-giocatore");
+  sel.innerHTML = '<option value="">Seleziona...</option>';
+  var disponibili = giocatoriInCampoAttuale();
+  disponibili.forEach(function(g){
+    var o = document.createElement("option");
+    o.value = g.id; o.textContent = g.cognome + " " + g.nome + (g.numero?(" (N."+g.numero+")"):"");
+    sel.appendChild(o);
+  });
+  document.getElementById("amm-nota").value = "";
+  if(!disponibili.length){ alert("Nessun giocatore attualmente in campo."); return; }
+  document.getElementById("modalAmmonizione").classList.add("open");
+}
+function closeModalAmmonizione(){
+  document.getElementById("modalAmmonizione").classList.remove("open");
+}
+function confermaAmmonizione(){
+  var gid = document.getElementById("amm-giocatore").value;
+  if(!gid){ alert("Seleziona il giocatore."); return; }
+  var g = giocatori.find(function(x){return x.id===gid;});
+  var nota = (document.getElementById("amm-nota").value||"").trim();
+  var minuto = calcolaMinutoCorrente();
+  eventi.push({
+    tipo: "ammonizione", minuto: minuto,
+    giocatoreId: gid, giocatoreNome: g?g.nome:null, giocatoreCognome: g?g.cognome:null,
+    nota: nota || null, ts: Date.now()
+  });
+  persistState();
+  closeModalAmmonizione();
   renderPartita();
 }
 </script>
