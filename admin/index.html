@@ -1219,17 +1219,35 @@ function parseCalendarioLines(lines, yearFn) {
 
 // ---- parsing comunicato (risultati + classifica) ----
 function parseComunicatoLines(lines) {
-  var risultati = [], classifica = [];
-  var curGiornataNum = 0, section = null;
+  var risultati = [], classifica = [], prossimi = [];
+  var curGiornataNum = 0, section = null, inProssimi = false, lastProssimo = null;
   for (var i = 0; i < lines.length; i++) {
     var line = (lines[i] || "").trim();
     if (!line) continue;
-    if (/^Classifica$/i.test(line)) { section = "classifica"; continue; }
-    if (/^Prossimi incontri$/i.test(line)) { section = null; continue; }
+    if (/^Classifica$/i.test(line)) { section = "classifica"; inProssimi = false; continue; }
+    if (/^Prossimi incontri$/i.test(line)) { section = null; inProssimi = true; lastProssimo = null; continue; }
     if (/^Marcatori$/i.test(line) || /^Sanzioni$/i.test(line)) break;
     var mga = line.match(/^(\d+)\s*-\s*(Andata|Ritorno)$/i);
-    if (mga) { curGiornataNum = parseInt(mga[1]); section = "partite"; continue; }
+    if (mga) { curGiornataNum = parseInt(mga[1]); section = inProssimi ? "prossimi" : "partite"; continue; }
     if (/^P\.ti\s*@@/.test(line)) continue;
+    if (section === "prossimi") {
+      var mrin = line.match(/^RINVIATA\b\s*(.*)$/i);
+      if (mrin) {
+        if (lastProssimo) { lastProssimo.rinviata = true; lastProssimo.rinviataMotivo = (mrin[1] || "").trim() || "Rinviata"; }
+        continue;
+      }
+      var mu = line.match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(.+?)\s*$/);
+      if (mu) {
+        var cRaw = mu[4].trim(), oRaw = mu[5].trim();
+        lastProssimo = {
+          giornataNum: curGiornataNum, data: mu[1], ora: mu[2],
+          casa: matchTeam(cRaw) || cRaw, ospite: matchTeam(oRaw) || oRaw,
+          rinviata: false, rinviataMotivo: ""
+        };
+        prossimi.push(lastProssimo);
+      }
+      continue;
+    }
     if (section === "partite") {
       var mm = line.match(/^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(.+?)\s*@@\s*(\d+)\s*@@\s*(\d+)\s*$/);
       if (mm) {
@@ -1255,7 +1273,20 @@ function parseComunicatoLines(lines) {
     }
   }
   classifica.sort(function(a, b) { return a.rank - b.rank; });
-  return { risultati: risultati, classifica: classifica };
+  var rinviate = prossimi.filter(function(p) { return p.rinviata; });
+  return { risultati: risultati, classifica: classifica, rinviate: rinviate };
+}
+
+// Il comunicato è autoritativo: se l'ordine casa/ospite non coincide con il
+// calendario (importato prima che la partita si giocasse), correggiamo il calendario.
+function stessaCoppia(e, r) {
+  return (e.casa === r.casa && e.ospite === r.ospite) || (e.casa === r.ospite && e.ospite === r.casa);
+}
+function trovaFixtureIndex(list, r) {
+  var idx = list.findIndex(function(e) { return e.giornataNum === r.giornataNum && stessaCoppia(e, r); });
+  if (idx < 0) idx = list.findIndex(function(e) { return stessaCoppia(e, r) && !e.score; });
+  if (idx < 0) idx = list.findIndex(function(e) { return stessaCoppia(e, r); });
+  return idx;
 }
 
 // ---- UI: import calendario ----
@@ -1333,32 +1364,41 @@ function analizzaComunicatoPdf() {
     prev.innerHTML = '<div class="empty-state">Errore nella lettura del PDF: ' + e.message + '</div>';
   });
 }
-function trovaFixtureCorrispondente(r) {
-  return currentCalendario.find(function(e) {
-    return e.giornataNum === r.giornataNum && e.casa === r.casa && e.ospite === r.ospite;
-  }) || currentCalendario.find(function(e) {
-    return e.casa === r.casa && e.ospite === r.ospite && !e.score;
-  }) || null;
-}
 function renderComPreview() {
   var prev = document.getElementById("com-preview");
-  if (!campComParsed || (!campComParsed.risultati.length && !campComParsed.classifica.length)) {
+  if (!campComParsed || (!campComParsed.risultati.length && !campComParsed.classifica.length && !campComParsed.rinviate.length)) {
     prev.innerHTML = '<div class="empty-state">Nessun dato riconosciuto nel PDF.</div>';
     return;
   }
   var html = '<div class="roster-section-label">Risultati (' + campComParsed.risultati.length + ')</div>';
   campComParsed.risultati.forEach(function(r, idx) {
     var badCasa = TEAM_CANON.indexOf(r.casa) < 0, badOspite = TEAM_CANON.indexOf(r.ospite) < 0;
-    var matched = trovaFixtureCorrispondente(r);
+    var matchIdx = trovaFixtureIndex(currentCalendario, r);
     html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px">';
     html += '<div style="flex:1">' + teamSelectHtml("campComParsed.risultati[" + idx + "].casa=this.value", r.casa, badCasa) + '</div>';
     html += '<div style="font-weight:700;white-space:nowrap">' + r.score + '</div>';
     html += '<div style="flex:1;text-align:right">' + teamSelectHtml("campComParsed.risultati[" + idx + "].ospite=this.value", r.ospite, badOspite) + '</div>';
     html += '</div>';
-    if (!matched) {
+    if (matchIdx < 0) {
       html += '<div style="color:var(--grey2);font-size:10.5px;padding:2px 0 8px">&#9888; Nessuna partita corrispondente nel calendario: verrà ignorato.</div>';
+    } else {
+      var e = currentCalendario[matchIdx];
+      if (e.casa !== r.casa || e.ospite !== r.ospite) {
+        html += '<div style="color:var(--grey1);font-size:10.5px;padding:2px 0 8px">&#8635; Casa/trasferta invertite nel calendario: verranno corrette (' + e.casa + ' vs ' + e.ospite + ' &rarr; ' + r.casa + ' vs ' + r.ospite + ').</div>';
+      }
     }
   });
+  if (campComParsed.rinviate.length) {
+    html += '<div class="roster-section-label" style="margin-top:16px">Partite rinviate (' + campComParsed.rinviate.length + ')</div>';
+    campComParsed.rinviate.forEach(function(r) {
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12.5px">';
+      html += '<div style="flex:1">' + r.casa + '</div>';
+      html += '<div style="color:var(--red);font-size:10px;font-weight:700;white-space:nowrap">RINVIATA</div>';
+      html += '<div style="flex:1;text-align:right">' + r.ospite + '</div>';
+      html += '</div>';
+      html += '<div style="color:var(--grey2);font-size:10.5px;padding:2px 0 8px">' + r.rinviataMotivo + '</div>';
+    });
+  }
   html += '<div class="roster-section-label" style="margin-top:16px">Classifica (' + campComParsed.classifica.length + ' squadre)</div>';
   html += '<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">';
   campComParsed.classifica.forEach(function(c) {
@@ -1372,12 +1412,22 @@ function renderComPreview() {
 function confermaImportComunicato() {
   if (!db) return;
   var updated = currentCalendario.map(function(e) { return Object.assign({}, e); });
-  var notFound = 0;
+  var notFound = 0, swapped = 0;
   campComParsed.risultati.forEach(function(r) {
-    var idx = updated.findIndex(function(e) { return e.giornataNum === r.giornataNum && e.casa === r.casa && e.ospite === r.ospite; });
-    if (idx < 0) idx = updated.findIndex(function(e) { return e.casa === r.casa && e.ospite === r.ospite && !e.score; });
-    if (idx >= 0) { updated[idx].score = r.score; if (!updated[idx].data) updated[idx].data = r.data; }
-    else notFound++;
+    var idx = trovaFixtureIndex(updated, r);
+    if (idx < 0) { notFound++; return; }
+    var e = updated[idx];
+    if (e.casa !== r.casa || e.ospite !== r.ospite) { e.casa = r.casa; e.ospite = r.ospite; swapped++; }
+    e.score = r.score;
+    e.rinviata = false; e.rinviataMotivo = "";
+    if (!e.data) e.data = r.data;
+  });
+  campComParsed.rinviate.forEach(function(r) {
+    var idx = trovaFixtureIndex(updated, r);
+    if (idx >= 0) {
+      var e = updated[idx];
+      if (!e.score) { e.rinviata = true; e.rinviataMotivo = r.rinviataMotivo || "Rinviata"; }
+    }
   });
   updated.sort(function(a, b) { return a.giornataNum - b.giornataNum; });
   var classificaRows = campComParsed.classifica.map(function(c) {
@@ -1387,7 +1437,11 @@ function confermaImportComunicato() {
   if (classificaRows.length) ops.push(db.collection("dati_campionato").doc("classifica").set({ rows: classificaRows, updatedAt: new Date().toISOString() }));
   Promise.all(ops).then(function() {
     var okCount = campComParsed.risultati.length - notFound;
-    alert("Aggiornamento completato.\nRisultati aggiornati: " + okCount + "/" + campComParsed.risultati.length + (notFound ? ("\n(" + notFound + " non trovati nel calendario)") : "") + "\nClassifica aggiornata: " + classificaRows.length + " squadre.");
+    alert("Aggiornamento completato.\nRisultati aggiornati: " + okCount + "/" + campComParsed.risultati.length +
+      (swapped ? ("\n(" + swapped + " con casa/trasferta corrette)") : "") +
+      (notFound ? ("\n(" + notFound + " non trovati nel calendario)") : "") +
+      (campComParsed.rinviate.length ? ("\nPartite rinviate segnalate: " + campComParsed.rinviate.length) : "") +
+      "\nClassifica aggiornata: " + classificaRows.length + " squadre.");
     document.getElementById("com-preview").innerHTML = "";
     document.getElementById("com-file-input").value = "";
     campComParsed = null;
