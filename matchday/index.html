@@ -830,27 +830,32 @@ function renderPartita(){
 }
 
 // ---- TABELLINO (unico, noi a sinistra / avversario a destra) ----
+function nomeBreve(nome, cognome){
+  if(!cognome) return "?";
+  var iniziale = nome ? (nome.trim().charAt(0).toUpperCase() + ". ") : "";
+  return iniziale + cognome;
+}
 function formatEventoContenuto(e, avvNome){
   var icon, main, sub = "";
   var nostro = e.tipo !== "avversario";
   if(e.tipo === "nostro"){
     icon = "⚽";
-    main = (e.giocatoreCognome||"?") + (e.rigore ? " (R)" : "");
-    if(e.assistCognome) sub = "ass. " + e.assistCognome;
+    main = nomeBreve(e.giocatoreNome, e.giocatoreCognome) + (e.rigore ? " (R)" : "");
+    if(e.assistCognome) sub = "ass. " + nomeBreve(e.assistNome, e.assistCognome);
   } else if(e.tipo === "avversario"){
     icon = "⚽";
     main = avvNome || "Avversari";
   } else if(e.tipo === "sostituzione"){
     icon = "🔁";
-    main = e.entraCognome || "?";
-    sub = "esce " + (e.escCognome||"?");
+    main = nomeBreve(e.entraNome, e.entraCognome);
+    sub = "esce " + nomeBreve(e.escNome, e.escCognome);
   } else if(e.tipo === "cartellino"){
     if(e.colore === "giallo"){
-      icon = "🟨"; main = e.giocatoreCognome||"?";
+      icon = "🟨"; main = nomeBreve(e.giocatoreNome, e.giocatoreCognome);
     } else if(e.sottotipo === "doppio_giallo"){
-      icon = "🟨🟥"; main = (e.giocatoreCognome||"?") + " (2° giallo)";
+      icon = "🟨🟥"; main = nomeBreve(e.giocatoreNome, e.giocatoreCognome) + " (2° giallo)";
     } else {
-      icon = "🟥"; main = e.giocatoreCognome||"?";
+      icon = "🟥"; main = nomeBreve(e.giocatoreNome, e.giocatoreCognome);
     }
     if(e.nota) sub = e.nota;
   }
