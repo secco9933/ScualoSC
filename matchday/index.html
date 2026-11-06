@@ -76,6 +76,7 @@ label.chk-label input{width:18px;height:18px}
 .gol-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:120px;padding:10px;border-radius:14px;border:1px solid var(--border);background:var(--black3);color:var(--white);cursor:pointer}
 .gol-btn-icon{font-size:32px;line-height:1}
 .gol-btn-label{font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:700;letter-spacing:0.5px;text-align:center}
+.gol-btn-sub{font-size:10.5px;color:var(--grey1);letter-spacing:0.3px;text-align:center}
 
 /* Tabellino unico, noi a sinistra / avversario a destra */
 .tabellino-head{display:flex;justify-content:space-between;font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--grey2);text-transform:uppercase;padding:0 2px 6px}
@@ -214,7 +215,7 @@ label.chk-label input{width:18px;height:18px}
           <div class="gol-btns">
             <button class="gol-btn" onclick="apriModalGolNostro()"><span class="gol-btn-icon">⚽</span><span class="gol-btn-label">Gol Nostro</span></button>
             <button class="gol-btn" onclick="golAvversari()"><span class="gol-btn-icon">⚽</span><span class="gol-btn-label">Gol Avversari</span></button>
-            <button class="gol-btn" onclick="apriModalSostituzione()"><span class="gol-btn-icon">🔁</span><span class="gol-btn-label">Sostituzione</span></button>
+            <button class="gol-btn" onclick="apriModalSostituzione()"><span class="gol-btn-icon">🔁</span><span class="gol-btn-label">Sostituzione</span><span class="gol-btn-sub" id="sostRimanentiLabel">7 rimanenti</span></button>
             <button class="gol-btn" onclick="apriModalCartellino()"><span class="gol-btn-icon">🟨🟥</span><span class="gol-btn-label">Cartellino</span></button>
           </div>
         </div>
@@ -708,6 +709,11 @@ function giocatoreEspulso(giocatoreId){
   return eventi.some(function(e){ return e.tipo==="cartellino" && e.colore==="rosso" && e.giocatoreId===giocatoreId; });
 }
 var DURATA_TEMPO = 40; // minuti regolamentari per tempo nel nostro campionato (UISP)
+var MAX_SOSTITUZIONI = 7; // sostituzioni consentite per partita nel nostro campionato
+function sostituzioniRimanenti(){
+  var usate = eventi.filter(function(e){ return e.tipo==="sostituzione"; }).length;
+  return Math.max(0, MAX_SOSTITUZIONI - usate);
+}
 function periodoCorrente(){
   return timerStato==="secondo_tempo" ? 2 : 1;
 }
@@ -827,6 +833,8 @@ function renderPartita(){
   }
   setPartitaTab(partitaTab);
   renderTabellino();
+  var sostLabel = document.getElementById("sostRimanentiLabel");
+  if(sostLabel) sostLabel.textContent = sostituzioniRimanenti() + " rimanenti";
 }
 
 // ---- TABELLINO (unico, noi a sinistra / avversario a destra) ----
@@ -958,6 +966,10 @@ function confermaGolNostro(){
 
 // ---- SOSTITUZIONE ----
 function apriModalSostituzione(){
+  if(sostituzioniRimanenti() <= 0){
+    alert("Hai già effettuato tutte le " + MAX_SOSTITUZIONI + " sostituzioni disponibili per questa partita.");
+    return;
+  }
   var inCampo = giocatoriInCampoAttuale();
   var disponibili = panchinaDisponibileAttuale();
   if(!inCampo.length || !disponibili.length){
