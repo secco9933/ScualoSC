@@ -148,6 +148,41 @@ body{overflow:hidden}
 .multa-importo{font-family:"Barlow Condensed",sans-serif;font-size:20px;font-weight:900;color:var(--white);white-space:nowrap}
 .multa-badge{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:5px;background:rgba(255,255,255,0.1);color:var(--white);margin-top:6px;display:inline-block}
 .btn-close-modal{width:100%;background:var(--black3);border:1px solid var(--border);border-radius:8px;color:var(--grey1);font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:700;padding:12px;cursor:pointer;margin-top:6px}
+
+/* Calendario compleanni */
+.bd-next{margin-bottom:18px}
+.bd-next .next-team{font-size:22px}
+.bd-next-sub{margin-top:6px;font-size:12px;color:var(--grey1)}
+.bd-next-tag{display:inline-block;margin-top:10px;font-family:"Barlow Condensed",sans-serif;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:4px 12px;border-radius:20px;background:var(--white);color:var(--black)}
+.bd-cal{background:var(--black2);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.bd-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.bd-cal-title{font-family:"Barlow Condensed",sans-serif;font-size:20px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase}
+.bd-cal-nav{width:36px;height:36px;border-radius:8px;border:1px solid var(--grey3);background:var(--black3);color:var(--white);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.bd-cal-nav:active{background:var(--black5)}
+.bd-today-btn{display:block;margin:0 auto 10px;background:none;border:none;color:var(--grey1);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:"Barlow",sans-serif}
+.bd-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.bd-wd{text-align:center;font-family:"Barlow Condensed",sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:var(--grey2);padding:2px 0 4px}
+.bd-day{aspect-ratio:1;border-radius:8px;background:var(--black3);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:700;color:var(--grey1);position:relative;user-select:none}
+.bd-day.empty{background:transparent;border:none}
+.bd-day.today{border:1px solid var(--white);color:var(--white)}
+.bd-day.has{background:var(--white);color:var(--black);cursor:pointer;font-weight:900}
+.bd-day.has.past{opacity:0.5}
+.bd-day.selected{box-shadow:0 0 0 2px var(--black2),0 0 0 4px var(--white)}
+.bd-cake{font-size:11px;line-height:1;margin-top:1px}
+.bd-count{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#e03c3c;color:var(--white);font-family:"Barlow",sans-serif;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.bd-list{margin-top:18px}
+.bd-row{display:flex;align-items:center;gap:12px;background:var(--black3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;transition:border-color .2s}
+.bd-row.sel{border-color:var(--white)}
+.bd-row.past{opacity:0.55}
+.bd-date{width:44px;flex-shrink:0;text-align:center;border-right:1px solid var(--border);padding-right:10px}
+.bd-date-d{font-family:"Barlow Condensed",sans-serif;font-size:24px;font-weight:900;line-height:1}
+.bd-date-m{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--grey1);margin-top:2px}
+.bd-info{flex:1;min-width:0}
+.bd-name{font-family:"Barlow Condensed",sans-serif;font-size:16px;font-weight:900;text-transform:uppercase;line-height:1.1}
+.bd-age{font-size:11px;color:var(--grey1);margin-top:2px}
+.bd-when{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--grey1);white-space:nowrap}
+.bd-when.oggi{background:var(--white);color:var(--black);padding:3px 8px;border-radius:5px}
+.bd-note{margin-top:14px;font-size:11px;color:var(--grey2);text-align:center;line-height:1.6}
 </style>
 </head>
 <body>
@@ -208,6 +243,23 @@ body{overflow:hidden}
         <div id="ammonizioniContentPagina"><div class="empty-state">Caricamento...</div></div>
       </div>
     </div>
+    <div class="section" id="sec-compleanni">
+      <div class="inner">
+        <div class="page-title">Compleanni</div>
+        <div id="bdNext"></div>
+        <div class="bd-cal">
+          <div class="bd-cal-head">
+            <button class="bd-cal-nav" onclick="bdMove(-1)" aria-label="Mese precedente">&#8249;</button>
+            <div class="bd-cal-title" id="bdTitle">-</div>
+            <button class="bd-cal-nav" onclick="bdMove(1)" aria-label="Mese successivo">&#8250;</button>
+          </div>
+          <button class="bd-today-btn" id="bdTodayBtn" onclick="bdGoToday()" style="display:none">Torna a oggi</button>
+          <div class="bd-grid" id="bdGrid"></div>
+        </div>
+        <div class="bd-list" id="bdList"></div>
+        <div class="bd-note" id="bdNote"></div>
+      </div>
+    </div>
   </div>
   <nav class="bottom-nav">
     <button class="nav-item active" data-section="rosa" onclick="navTo('rosa')">
@@ -221,6 +273,10 @@ body{overflow:hidden}
     <button class="nav-item" data-section="ammonizioni" onclick="navTo('ammonizioni')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="18" rx="1.5" transform="rotate(8 12 11)"/></svg>
       <span class="nav-label">Ammonizioni</span>
+    </button>
+    <button class="nav-item" data-section="compleanni" onclick="navTo('compleanni')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg>
+      <span class="nav-label">Compleanni</span>
     </button>
   </nav>
 </div>
@@ -420,6 +476,173 @@ function navTo(section){
   if(section==="rosa") renderRosa(giocatori);
   if(section==="multe") renderMultePagina();
   if(section==="ammonizioni") renderAmmonizioniPagina();
+  if(section==="compleanni") renderCompleanni();
+}
+
+/* ===== CALENDARIO COMPLEANNI ===== */
+var MESI_IT=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+var GIORNI_IT=["L","M","M","G","V","S","D"];
+var bdYear=null, bdMonth=null, bdSelDay=null;
+
+// Accetta gg/mm/aaaa, g/m/aa, gg-mm-aaaa, gg.mm.aaaa, aaaa-mm-gg e Timestamp Firestore
+function parseNascita(v){
+  if(!v) return null;
+  if(typeof v.toDate==="function"){var dt=v.toDate();return {d:dt.getDate(),m:dt.getMonth()+1,y:dt.getFullYear()};}
+  var s=String(v).trim(), d, m, y, r;
+  if((r=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/))){y=+r[1];m=+r[2];d=+r[3];}
+  else if((r=s.match(/^(\d{1,2})[\/\-.\s](\d{1,2})(?:[\/\-.\s](\d{2,4}))?$/))){
+    d=+r[1];m=+r[2];y=r[3]?+r[3]:null;
+    if(y!==null&&y<100) y+=(y>(new Date().getFullYear()%100)?1900:2000);
+  } else return null;
+  if(m<1||m>12||d<1||d>31) return null;
+  return {d:d,m:m,y:y};
+}
+function isLeap(y){return (y%4===0&&y%100!==0)||y%400===0;}
+// Giorno del compleanno in un dato anno (29/02 -> 28/02 negli anni non bisestili)
+function bdDayIn(n,year){return (n.m===2&&n.d===29&&!isLeap(year))?28:n.d;}
+function bdPeople(){
+  var out=[];
+  giocatori.forEach(function(g){
+    var n=parseNascita(g.dataNascita);
+    if(n) out.push({g:g,n:n,nome:((g.nome||"")+" "+(g.cognome||"")).trim(),dir:g.ruolo==="dirigente"});
+  });
+  return out;
+}
+function bdToday(){var t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate());}
+function bdDaysUntil(p){
+  var t=bdToday(), y=t.getFullYear();
+  var next=new Date(y,p.n.m-1,bdDayIn(p.n,y));
+  if(next<t){y++;next=new Date(y,p.n.m-1,bdDayIn(p.n,y));}
+  return {days:Math.round((next-t)/86400000),year:y};
+}
+function bdAgeText(p,year){
+  if(!p.n.y||p.n.y<1900||p.n.y>=year) return "";
+  return (year-p.n.y)+" anni";
+}
+function bdMove(delta){
+  bdMonth+=delta;
+  if(bdMonth<0){bdMonth=11;bdYear--;}
+  if(bdMonth>11){bdMonth=0;bdYear++;}
+  bdSelDay=null;
+  renderCompleanni();
+}
+function bdGoToday(){var t=new Date();bdYear=t.getFullYear();bdMonth=t.getMonth();bdSelDay=null;renderCompleanni();}
+function bdSelect(day){
+  bdSelDay=(bdSelDay===day)?null:day;
+  renderCompleanni();
+  if(bdSelDay){
+    var el=document.querySelector('.bd-row[data-day="'+bdSelDay+'"]');
+    if(el) el.scrollIntoView({behavior:"smooth",block:"center"});
+  }
+}
+function renderCompleanni(){
+  var grid=document.getElementById("bdGrid");
+  if(!grid) return;
+  var t=bdToday();
+  if(bdYear===null){bdYear=t.getFullYear();bdMonth=t.getMonth();}
+  var people=bdPeople();
+
+  // --- Prossimo compleanno ---
+  var nextBox=document.getElementById("bdNext");nextBox.innerHTML="";
+  if(people.length){
+    var min=Infinity, nextList=[], nextYear=null;
+    people.forEach(function(p){
+      var u=bdDaysUntil(p);
+      if(u.days<min){min=u.days;nextList=[p];nextYear=u.year;}
+      else if(u.days===min) nextList.push(p);
+    });
+    var card=document.createElement("div");card.className="next-card bd-next";
+    var lbl=document.createElement("div");lbl.className="next-label";
+    lbl.textContent=min===0?"🎂 Compleanno oggi":"Prossimo compleanno";card.appendChild(lbl);
+    var nm=document.createElement("div");nm.className="next-team";
+    nm.textContent=nextList.map(function(p){return p.nome;}).join(" · ");card.appendChild(nm);
+    var p0=nextList[0], dd=bdDayIn(p0.n,nextYear);
+    var sub=document.createElement("div");sub.className="bd-next-sub";
+    var ages=nextList.length===1?bdAgeText(p0,nextYear):"";
+    sub.textContent=dd+" "+MESI_IT[p0.n.m-1]+(ages?" · compie "+ages:"");card.appendChild(sub);
+    var tag=document.createElement("div");tag.className="bd-next-tag";
+    tag.textContent=min===0?"Oggi si mangia! 🍕":(min===1?"Domani":"Tra "+min+" giorni");
+    card.appendChild(tag);
+    nextBox.appendChild(card);
+  }
+
+  // --- Griglia del mese ---
+  document.getElementById("bdTitle").textContent=MESI_IT[bdMonth]+" "+bdYear;
+  document.getElementById("bdTodayBtn").style.display=(bdYear===t.getFullYear()&&bdMonth===t.getMonth())?"none":"block";
+  var byDay={};
+  people.forEach(function(p){
+    if(p.n.m-1!==bdMonth) return;
+    var d=bdDayIn(p.n,bdYear);
+    (byDay[d]=byDay[d]||[]).push(p);
+  });
+  grid.innerHTML="";
+  GIORNI_IT.forEach(function(w){var h=document.createElement("div");h.className="bd-wd";h.textContent=w;grid.appendChild(h);});
+  var first=new Date(bdYear,bdMonth,1).getDay(); // 0=domenica
+  var offset=(first+6)%7; // settimana che parte dal lunedì
+  var nDays=new Date(bdYear,bdMonth+1,0).getDate();
+  for(var i=0;i<offset;i++){var e=document.createElement("div");e.className="bd-day empty";grid.appendChild(e);}
+  for(var day=1;day<=nDays;day++){
+    var cell=document.createElement("div");
+    var date=new Date(bdYear,bdMonth,day);
+    var cls="bd-day";
+    if(date.getTime()===t.getTime()) cls+=" today";
+    var list=byDay[day];
+    if(list){
+      cls+=" has";
+      if(date<t) cls+=" past";
+      if(bdSelDay===day) cls+=" selected";
+      (function(d){cell.addEventListener("click",function(){bdSelect(d);});})(day);
+      cell.title=list.map(function(p){return p.nome;}).join(", ");
+    }
+    cell.className=cls;
+    var num=document.createElement("div");num.textContent=day;cell.appendChild(num);
+    if(list){
+      var ck=document.createElement("div");ck.className="bd-cake";ck.textContent="🎂";cell.appendChild(ck);
+      if(list.length>1){var c=document.createElement("div");c.className="bd-count";c.textContent=list.length;cell.appendChild(c);}
+    }
+    grid.appendChild(cell);
+  }
+
+  // --- Lista compleanni del mese ---
+  var listEl=document.getElementById("bdList");listEl.innerHTML="";
+  var days=Object.keys(byDay).map(Number).sort(function(a,b){return a-b;});
+  var lb=document.createElement("div");lb.className="roster-section-label";
+  var tot=0;days.forEach(function(d){tot+=byDay[d].length;});
+  lb.textContent="Compleanni di "+MESI_IT[bdMonth].toLowerCase()+" ("+tot+")";listEl.appendChild(lb);
+  if(!days.length){
+    var em=document.createElement("div");em.className="empty-state";em.style.padding="20px 0";
+    em.textContent=people.length?"Nessun compleanno questo mese":"Nessuna data di nascita inserita";
+    listEl.appendChild(em);
+  }
+  days.forEach(function(d){
+    byDay[d].sort(function(a,b){return a.nome.localeCompare(b.nome);}).forEach(function(p){
+      var date=new Date(bdYear,bdMonth,d);
+      var diff=Math.round((date-t)/86400000);
+      var row=document.createElement("div");
+      row.className="bd-row"+(diff<0?" past":"")+(bdSelDay===d?" sel":"");
+      row.setAttribute("data-day",d);
+      var dc=document.createElement("div");dc.className="bd-date";
+      var dn=document.createElement("div");dn.className="bd-date-d";dn.textContent=d;dc.appendChild(dn);
+      var dm=document.createElement("div");dm.className="bd-date-m";dm.textContent=MESI_IT[bdMonth].slice(0,3);dc.appendChild(dm);
+      row.appendChild(dc);
+      var info=document.createElement("div");info.className="bd-info";
+      var n=document.createElement("div");n.className="bd-name";n.textContent=p.nome+(p.dir?" (DIR)":"");info.appendChild(n);
+      var age=bdAgeText(p,bdYear);
+      if(age){var a=document.createElement("div");a.className="bd-age";a.textContent=(diff<0?"Ha compiuto ":"Compie ")+age;info.appendChild(a);}
+      row.appendChild(info);
+      var w=document.createElement("div");w.className="bd-when"+(diff===0?" oggi":"");
+      w.textContent=diff===0?"Oggi":(diff===1?"Domani":(diff>1?"Tra "+diff+" gg":"Passato"));
+      row.appendChild(w);
+      listEl.appendChild(row);
+    });
+  });
+
+  // --- Nota su chi manca ---
+  var missing=giocatori.filter(function(g){return !parseNascita(g.dataNascita);});
+  var note=document.getElementById("bdNote");
+  if(missing.length){
+    note.textContent="Data di nascita mancante per: "+missing.map(function(g){return ((g.nome||"")+" "+(g.cognome||"")).trim();}).join(", ")+". Va aggiunta dall'area Admin.";
+  } else note.textContent="";
 }
 function multeTabPagina(btn,tab){
   currentMulteTabPagina=tab;
@@ -485,6 +708,7 @@ function initApp(){
     db.collection("giocatori").orderBy("cognome").onSnapshot(function(snap){
       giocatori=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
       renderRosa(giocatori);
+      if(currentSection==="compleanni") renderCompleanni();
     });
     db.collection("multe").orderBy("data","desc").onSnapshot(function(snap){
       multe=snap.docs.map(function(d){var o=d.data();o.id=d.id;return o;});
