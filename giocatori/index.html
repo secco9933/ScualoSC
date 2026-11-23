@@ -561,7 +561,7 @@ function renderCompleanni(){
     var ages=nextList.length===1?bdAgeText(p0,nextYear):"";
     sub.textContent=dd+" "+MESI_IT[p0.n.m-1]+(ages?" · compie "+ages:"");card.appendChild(sub);
     var tag=document.createElement("div");tag.className="bd-next-tag";
-    tag.textContent=min===0?"Oggi si mangia! 🍕":(min===1?"Domani":"Tra "+min+" giorni");
+    tag.textContent=min===0?"Oggi":(min===1?"Domani":"Tra "+min+" giorni");
     card.appendChild(tag);
     nextBox.appendChild(card);
   }
